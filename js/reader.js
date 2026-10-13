@@ -2,7 +2,7 @@ import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';
 const ROOT='smartbooks1/AI2027';
 const $=id=>document.getElementById(id);
-let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,task=0,loadingTask=null;
+let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,fitMode="width",task=0,loadingTask=null;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
 const info=(message,error=false)=>{$('message').textContent=message;$('message').className='message'+(error?' error':'');$('message').hidden=false};
@@ -44,7 +44,7 @@ async function render(){
   const pages=await Promise.all(nums.map(n=>pdf.getPage(n)));if(id!==task)return;
   const vw=Math.max(200,$('viewer').clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
   const base=pages.map(p=>p.getViewport({scale:1}));
-  const scale=Math.min(...base.map(v=>(vw-12*(nums.length-1))/(v.width*nums.length)))*zoom;
+  const widthScale=Math.min(...base.map(v=>(vw-12*(nums.length-1))/(v.width*nums.length)));const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-36);const heightScale=Math.min(...base.map(v=>availableHeight/v.height));const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
   const canvases=pages.map((p,i)=>{const view=p.getViewport({scale:scale*dpr}),canvas=document.createElement('canvas');canvas.className='sheet';canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';return{p,view,canvas}});
   canvases.forEach(c=>$('sheets').appendChild(c.canvas));await Promise.all(canvases.map(c=>c.p.render({canvasContext:c.canvas.getContext('2d'),viewport:c.view}).promise));
   if(id!==task)return;$('message').hidden=true;
@@ -53,12 +53,12 @@ async function render(){
  }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
 }
 function navigate(target){if(!pdf)return;page=Math.max(1,Math.min(pdf.numPages,target));render()}
-$('menu').onclick=()=>$('sidebar').classList.toggle('open');
+$('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>render())}};
 $('prev').onclick=()=>navigate(page-(spread?2:1));$('next').onclick=()=>navigate(page+(spread?2:1));
 $('page').onchange=()=>navigate(Number($('page').value)||1);
 $('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.2);render()};
 $('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.2);render()};
-$('fit').onclick=()=>{zoom=1;render()};
+$('fit').onclick=()=>{fitMode='width';zoom=1;render()};$('fitPage').onclick=()=>{fitMode='page';zoom=1;render()};
 $('spread').onclick=()=>{spread=!spread;$('spread').textContent=spread?'한 쪽 보기':'두 쪽 보기';render()};
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
