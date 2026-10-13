@@ -2,7 +2,7 @@ import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';
 const ROOT='smartbooks1/AI2027';
 const $=id=>document.getElementById(id);
-let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,fitMode="page",task=0,loadingTask=null;
+let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,rotation=0,fitMode="page",task=0,loadingTask=null;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
 const info=(message,error=false)=>{$('message').textContent=message;$('message').className='message'+(error?' error':'');$('message').hidden=false};
@@ -27,7 +27,7 @@ async function loadBooks(){
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 async function openBook(index){
- current=index;page=1;zoom=1;fitMode='page';const id=++task;const b=books[index];
+ current=index;page=1;zoom=1;rotation=0;fitMode='page';const id=++task;const b=books[index];
  if(loadingTask){try{loadingTask.destroy()}catch{}loadingTask=null}
  pdf=null;$('title').textContent=b.title;
  document.querySelectorAll('.chapter').forEach((n,i)=>n.classList.toggle('active',i===index));
@@ -43,9 +43,9 @@ async function render(){
  try{
   const pages=await Promise.all(nums.map(n=>pdf.getPage(n)));if(id!==task)return;
   const vw=Math.max(200,$('viewer').clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
-  const base=pages.map(p=>p.getViewport({scale:1}));
+  const base=pages.map(p=>p.getViewport({scale:1,rotation:(p.rotate+rotation)%360}));
   const widthScale=Math.min(...base.map(v=>(vw-12*(nums.length-1))/(v.width*nums.length)));const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-64);const heightScale=Math.min(...base.map(v=>availableHeight/v.height));const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
-  const canvases=pages.map((p,i)=>{const view=p.getViewport({scale:scale*dpr}),canvas=document.createElement('canvas');canvas.className='sheet';canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';return{p,view,canvas}});
+  const canvases=pages.map((p,i)=>{const view=p.getViewport({scale:scale*dpr,rotation:(p.rotate+rotation)%360}),canvas=document.createElement('canvas');canvas.className='sheet';canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';return{p,view,canvas}});
   canvases.forEach(c=>$('sheets').appendChild(c.canvas));await Promise.all(canvases.map(c=>c.p.render({canvasContext:c.canvas.getContext('2d'),viewport:c.view}).promise));
   if(id!==task)return;$('message').hidden=true;refreshModeButtons();
   $('page').value=page;$('page').max=pdf.numPages;$('total').textContent=pdf.numPages;
@@ -58,6 +58,8 @@ $('prev').onclick=()=>navigate(spread?(page<=2?1:page-2):page-1);$('next').oncli
 $('page').onchange=()=>navigate(Number($('page').value)||1);
 $('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.1);render()};
 $('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.1);render()};
+$('rotateLeft').onclick=()=>{rotation=(rotation+270)%360;render()};
+$('rotateRight').onclick=()=>{rotation=(rotation+90)%360;render()};
 function refreshModeButtons(){for(const [id,active] of [['fit',fitMode==='width'],['fitPage',fitMode==='page'],['spread',spread]]){$(id).setAttribute('aria-pressed',String(active));$(id).classList.toggle('mode-active',active)}}
 $('fit').onclick=()=>{fitMode='width';zoom=1;refreshModeButtons();render()};$('fitPage').onclick=()=>{fitMode='page';zoom=1;refreshModeButtons();render()};
 $('spread').onclick=()=>{spread=!spread;if(spread&&page>1&&page%2!==0)page-=1;$('spread').textContent=spread?'▤ 한 쪽':'▣ 두 쪽';refreshModeButtons();render()};
