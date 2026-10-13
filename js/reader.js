@@ -44,7 +44,7 @@ async function render(){
   const pages=await Promise.all(nums.map(n=>pdf.getPage(n)));if(id!==task)return;
   const vw=Math.max(200,$('viewer').clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
   const base=pages.map(p=>p.getViewport({scale:1}));
-  const widthScale=Math.min(...base.map(v=>(vw-12*(nums.length-1))/(v.width*nums.length)));const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-36);const heightScale=Math.min(...base.map(v=>availableHeight/v.height));const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
+  const widthScale=Math.min(...base.map(v=>(vw-12*(nums.length-1))/(v.width*nums.length)));const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-64);const heightScale=Math.min(...base.map(v=>availableHeight/v.height));const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
   const canvases=pages.map((p,i)=>{const view=p.getViewport({scale:scale*dpr}),canvas=document.createElement('canvas');canvas.className='sheet';canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';return{p,view,canvas}});
   canvases.forEach(c=>$('sheets').appendChild(c.canvas));await Promise.all(canvases.map(c=>c.p.render({canvasContext:c.canvas.getContext('2d'),viewport:c.view}).promise));
   if(id!==task)return;$('message').hidden=true;
@@ -52,7 +52,7 @@ async function render(){
   $('prev').disabled=page<=1;$('next').disabled=page+(spread?1:0)>=pdf.numPages;$('zoomLabel').textContent=Math.round(zoom*100)+'%';
  }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
 }
-function navigate(target){if(!pdf)return;page=Math.max(1,Math.min(pdf.numPages,target));render()}
+function navigate(target){if(!pdf)return;page=Math.max(1,Math.min(pdf.numPages,target));$('viewer').scrollTop=0;render()}
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>render())}};
 $('prev').onclick=()=>navigate(page-(spread?2:1));$('next').onclick=()=>navigate(page+(spread?2:1));
 $('page').onchange=()=>navigate(Number($('page').value)||1);
@@ -63,4 +63,9 @@ $('spread').onclick=()=>{spread=!spread;$('spread').textContent=spread?'한 쪽 
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
 window.addEventListener('resize',()=>{if(pdf)render()});
+// Mobile horizontal swipe navigation
+let touchStart=null;
+$('viewer').addEventListener('touchstart',e=>{if(e.touches.length===1)touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};else touchStart=null},{passive:true});
+$('viewer').addEventListener('touchend',e=>{if(!touchStart||e.changedTouches.length!==1)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;touchStart=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0)$('next').click();else $('prev').click()}},{passive:true});
+$('viewer').addEventListener('touchcancel',()=>{touchStart=null},{passive:true});
 loadBooks();
