@@ -56,8 +56,8 @@ function navigate(target){if(!pdf)return;page=Math.max(1,Math.min(pdf.numPages,t
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>render())}};
 $('prev').onclick=()=>navigate(page-(spread?2:1));$('next').onclick=()=>navigate(page+(spread?2:1));
 $('page').onchange=()=>navigate(Number($('page').value)||1);
-$('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.2);render()};
-$('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.2);render()};
+$('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.1);render()};
+$('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.1);render()};
 function refreshModeButtons(){for(const [id,active] of [['fit',fitMode==='width'],['fitPage',fitMode==='page'],['spread',spread]]){$(id).setAttribute('aria-pressed',String(active));$(id).classList.toggle('mode-active',active)}}
 $('fit').onclick=()=>{fitMode='width';zoom=1;refreshModeButtons();render()};$('fitPage').onclick=()=>{fitMode='page';zoom=1;refreshModeButtons();render()};
 $('spread').onclick=()=>{spread=!spread;$('spread').textContent=spread?'▤ 한 쪽':'▣ 두 쪽';refreshModeButtons();render()};
