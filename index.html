@@ -5,5 +5,10 @@
 <div class="tool-group" role="group" aria-label="화면 확대"><button id="zoomOut" aria-label="축소" title="축소"><span aria-hidden="true">−</span></button><span id="zoomLabel">100%</span><button id="zoomIn" aria-label="확대" title="확대"><span aria-hidden="true">＋</span></button></div>
 <div class="tool-group view-group" role="group" aria-label="읽기 방식"><button id="fit" type="button" aria-pressed="false" title="화면 너비에 맞춰 보기">↔ 너비</button><button id="fitPage" type="button" aria-pressed="true" title="페이지 전체를 화면에 맞춰 보기">⛶ 전체</button><button id="spread" type="button" aria-pressed="false" title="두 페이지 나란히 보기">▣ 두 쪽</button></div>
 <div class="tool-group rotation-group" role="group" aria-label="페이지 회전"><button id="rotateLeft" type="button" aria-label="반시계방향 90도 회전" title="왼쪽으로 90도 회전">↶ 90°</button><button id="rotateRight" type="button" aria-label="시계방향 90도 회전" title="오른쪽으로 90도 회전">↷ 90°</button></div>
+<button id="mobileMore" type="button" aria-expanded="false" aria-controls="mobileSettings" aria-label="추가 보기 설정">⚙ 보기 설정</button>
 <a class="download hidden" id="download" href="#">원본 다운로드</a>
-</div></header><section class="viewer" id="viewer" aria-label="전자책 열람"><div id="message" class="message">전자책을 준비하고 있습니다…</div><div class="sheets" id="sheets"></div></section></main></div><script type="module" src="./js/reader.js"></script></body></html>
+</div><div id="mobileSettings" class="mobile-settings" hidden>
+<div class="mobile-settings-title">보기 설정 <button id="closeMobileSettings" type="button" aria-label="설정 닫기">✕</button></div>
+<div class="mobile-options"><button type="button" id="mFit">↔ 너비 맞춤</button><button type="button" id="mFitPage">⛶ 전체 맞춤</button><button type="button" id="mSpread">▣ 두 쪽 보기</button><button type="button" id="mRotateLeft">↶ 왼쪽 90°</button><button type="button" id="mRotateRight">↷ 오른쪽 90°</button></div>
+</div>
+</header><section class="viewer" id="viewer" aria-label="전자책 열람"><div id="message" class="message">전자책을 준비하고 있습니다…</div><div class="sheets" id="sheets"></div></section></main></div><script type="module" src="./js/reader.js"></script></body></html>
