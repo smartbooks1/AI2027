@@ -90,3 +90,20 @@
  .viewer{padding:7px 9px}
  .sidebar.open{max-height:45vh;overflow-y:auto}
 }
+
+/* Compact single-line reader toolbar in landscape on touch devices. */
+@media (orientation:landscape) and (pointer:coarse) and (max-height:600px){
+ .toolbar{display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;justify-content:space-between;gap:8px;padding:5px 9px;min-height:0}
+ .toolbar-heading{display:flex;flex:1 1 0;min-width:0;width:auto;gap:6px;align-items:center}
+ .toolbar-heading .booktitle,.toolbar .booktitle{flex:1 1 0;min-width:0;max-width:none;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0;margin:0;order:0}
+ .toolbar-actions{display:flex;flex:0 0 auto;width:auto;justify-content:flex-end;gap:5px;flex-wrap:nowrap;min-width:0}
+ .toolbar #menu{max-width:73px;padding:6px 6px;min-height:31px;font-size:11px;overflow:hidden}
+ .toolbar .tool-group{padding:1px;gap:0}
+ .toolbar .tool-group button{min-height:29px;padding:3px 7px;font-size:11px}
+ .toolbar .tool-group label{padding:0 2px}
+ .toolbar .pageNumber{width:35px;padding:4px 2px;font-size:11px}
+ .toolbar #zoomLabel{min-width:30px;padding:0 1px;font-size:10px}
+ .toolbar #mobileMore{min-height:31px;padding:5px 7px;font-size:11px}
+ .viewer{padding:7px 9px}
+ .sidebar.open{max-height:42vh;overflow:auto}
+}
