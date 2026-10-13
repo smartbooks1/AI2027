@@ -63,9 +63,21 @@ $('spread').onclick=()=>{spread=!spread;$('spread').textContent=spread?'한 쪽 
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
 window.addEventListener('resize',()=>{if(pdf)render()});
-// Mobile horizontal swipe navigation
-let touchStart=null;
-$('viewer').addEventListener('touchstart',e=>{if(e.touches.length===1)touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};else touchStart=null},{passive:true});
-$('viewer').addEventListener('touchend',e=>{if(!touchStart||e.changedTouches.length!==1)return;const dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;touchStart=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0)$('next').click();else $('prev').click()}},{passive:true});
-$('viewer').addEventListener('touchcancel',()=>{touchStart=null},{passive:true});
+// Pointer Events swipe navigation (touch screens); allow vertical scrolling.
+let swipeStart=null;
+const area=$('viewer');
+area.addEventListener('pointerdown',e=>{
+ if(e.pointerType!=='touch'||!e.isPrimary){swipeStart=null;return}
+ swipeStart={id:e.pointerId,x:e.clientX,y:e.clientY,at:Date.now()};
+});
+area.addEventListener('pointerup',e=>{
+ if(!swipeStart||swipeStart.id!==e.pointerId)return;
+ const dx=e.clientX-swipeStart.x,dy=e.clientY-swipeStart.y;
+ const elapsed=Date.now()-swipeStart.at;swipeStart=null;
+ if(elapsed<1200&&Math.abs(dx)>=45&&Math.abs(dx)>Math.abs(dy)*1.25){
+  if(dx<0)$('next').click();else $('prev').click();
+ }
+});
+area.addEventListener('pointercancel',()=>{swipeStart=null});
+area.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.isPrimary)area.setPointerCapture(e.pointerId)});
 loadBooks();
