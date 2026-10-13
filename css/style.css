@@ -107,3 +107,9 @@
  .viewer{padding:7px 9px}
  .sidebar.open{max-height:42vh;overflow:auto}
 }
+
+/* Facing blank leaves when a spread contains only a cover or final page. */
+.sheets.spread-mode{gap:3px;align-items:stretch}
+.blank-page{flex:0 0 auto;background:linear-gradient(110deg,#f4f5f7 0%,#fafbfc 88%,#e8eaee 100%);box-shadow:0 8px 22px #30435c14,inset -8px 0 14px #182c3c09;border:1px solid #e6e9ee}
+.sheets.spread-mode .blank-page:last-child{background:linear-gradient(90deg,#e8eaee 0%,#fafbfc 12%,#f4f5f7 100%);box-shadow:0 8px 22px #30435c14,inset 8px 0 14px #182c3c09}
+.sheets.spread-mode .sheet{box-shadow:0 8px 22px #30435c20}
