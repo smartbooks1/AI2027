@@ -78,15 +78,19 @@ async function render(){
   if(id!==task)return;
   $('message').hidden=true;refreshModeButtons();
   $('page').value=page;$('page').max=pdf.numPages;$('total').textContent=pdf.numPages;
-  $('prev').disabled=page<=1;
-  $('next').disabled=page+(spread&&page>1?1:0)>=pdf.numPages;
+  $('prev').disabled=page<=1;$('edgePrev').disabled=$('prev').disabled;
+  $('next').disabled=page+(spread&&page>1?1:0)>=pdf.numPages;$('edgeNext').disabled=$('next').disabled;
   $('zoomLabel').textContent=Math.round(zoom*100)+'%';
  }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
 }
 function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(spread&&next>1&&next%2!==0)next-=1;page=next;$('viewer').scrollTop=0;render()}
-$('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>render())}};
+$('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()})}};
 $('prev').onclick=()=>navigate(spread?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(spread?(page===1?2:page+2):page+1);
 $('page').onchange=()=>navigate(Number($('page').value)||1);
+$('edgePrev').onclick=()=>$('prev').click();
+$('edgeNext').onclick=()=>$('next').click();
+function positionEdgeButtons(){document.querySelector('.layout').style.setProperty('--reader-left',document.querySelector('.main').getBoundingClientRect().left+'px')}
+positionEdgeButtons();
 $('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.1);render()};
 $('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.1);render()};
 $('rotateLeft').onclick=()=>{rotation=(rotation+270)%360;render()};
@@ -123,7 +127,7 @@ function refreshMobileLayout(){
 window.addEventListener('orientationchange',()=>setTimeout(refreshMobileLayout,120));
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
-window.addEventListener('resize',()=>{if(pdf)requestAnimationFrame(()=>render())});
+window.addEventListener('resize',()=>{positionEdgeButtons();if(pdf)requestAnimationFrame(()=>render())});
 // Pointer Events swipe navigation (touch screens); allow vertical scrolling.
 let swipeStart=null;
 const area=$('viewer');
