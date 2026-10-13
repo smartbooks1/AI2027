@@ -40,18 +40,47 @@ async function openBook(index){
  catch(e){if(id===task)info('PDF 열기 실패: '+e.message,true)}
 }
 async function render(){
- if(!pdf)return;const id=++task;const nums=spread&&page>1&&page<pdf.numPages?[page,page+1]:[page];
+ if(!pdf)return;
+ const id=++task;
+ // Spread slots are always two pages: blank+cover, paired pages, or final page+blank.
+ const slots=!spread?[page]:page===1?[null,1]:[page,page+1<=pdf.numPages?page+1:null];
  info('페이지를 표시하는 중입니다…');$('sheets').replaceChildren();
  try{
-  const pages=await Promise.all(nums.map(n=>pdf.getPage(n)));if(id!==task)return;
+  const loaded=await Promise.all(slots.map(n=>n===null?null:pdf.getPage(n)));
+  if(id!==task)return;
+  const real=loaded.filter(Boolean);
   const vw=Math.max(200,$('viewer').clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
-  const base=pages.map(p=>p.getViewport({scale:1,rotation:(p.rotate+rotation)%360}));
-  const widthScale=Math.min(...base.map(v=>(vw-12*(nums.length-1))/(v.width*nums.length)));const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-64);const heightScale=Math.min(...base.map(v=>availableHeight/v.height));const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
-  const canvases=pages.map((p,i)=>{const view=p.getViewport({scale:scale*dpr,rotation:(p.rotate+rotation)%360}),canvas=document.createElement('canvas');canvas.className='sheet';canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';return{p,view,canvas}});
-  canvases.forEach(c=>$('sheets').appendChild(c.canvas));await Promise.all(canvases.map(c=>c.p.render({canvasContext:c.canvas.getContext('2d'),viewport:c.view}).promise));
-  if(id!==task)return;$('message').hidden=true;refreshModeButtons();
+  const base=real.map(p=>p.getViewport({scale:1,rotation:(p.rotate+rotation)%360}));
+  const slotCount=slots.length;
+  const gap=spread?4:0;
+  const widthScale=Math.min(...base.map(v=>(vw-gap*(slotCount-1))/(v.width*slotCount)));
+  const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-64);
+  const heightScale=Math.min(...base.map(v=>availableHeight/v.height));
+  const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
+  const canvases=loaded.map(p=>{
+   if(!p)return null;
+   const view=p.getViewport({scale:scale*dpr,rotation:(p.rotate+rotation)%360});
+   const canvas=document.createElement('canvas');canvas.className='sheet';
+   canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);
+   canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';
+   return {p,view,canvas};
+  });
+  $('sheets').classList.toggle('spread-mode',spread);
+  const blankReference=canvases.find(Boolean)?.canvas;
+  canvases.forEach(item=>{
+   if(item){$('sheets').appendChild(item.canvas);return}
+   const blank=document.createElement('div');blank.className='blank-page';
+   blank.setAttribute('aria-label','빈 페이지');
+   blank.style.width=blankReference.style.width;blank.style.height=blankReference.style.height;
+   $('sheets').appendChild(blank);
+  });
+  await Promise.all(canvases.filter(Boolean).map(c=>c.p.render({canvasContext:c.canvas.getContext('2d'),viewport:c.view}).promise));
+  if(id!==task)return;
+  $('message').hidden=true;refreshModeButtons();
   $('page').value=page;$('page').max=pdf.numPages;$('total').textContent=pdf.numPages;
-  $('prev').disabled=page<=1;$('next').disabled=page+(spread&&page>1?1:0)>=pdf.numPages;$('zoomLabel').textContent=Math.round(zoom*100)+'%';
+  $('prev').disabled=page<=1;
+  $('next').disabled=page+(spread&&page>1?1:0)>=pdf.numPages;
+  $('zoomLabel').textContent=Math.round(zoom*100)+'%';
  }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
 }
 function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(spread&&next>1&&next%2!==0)next-=1;page=next;$('viewer').scrollTop=0;render()}
