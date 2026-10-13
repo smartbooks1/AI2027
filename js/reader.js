@@ -21,7 +21,7 @@ async function loadBooks(){
   const declared=(config.books||[]).filter(b=>b.visible!==false&&b.file);
   books=declared.length?declared:(config.autoDiscover?await discover():[]);
   if(!books.length){info('등록된 PDF가 없습니다. 저장소에 PDF를 올리거나 config/books.json을 설정해 주세요.');return}
-  books=books.map(b=>({...b,title:b.title||displayName(b.file)}));
+  books=books.map(b=>{const rule=(config.titleRules||[]).find(rule=>rule.contains&&b.file.includes(rule.contains));return {...b,title:rule?.title||b.title||displayName(b.file)}});
   const nav=$('chapters');nav.replaceChildren();books.forEach((b,i)=>{const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn)});
   await openBook(0);
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
