@@ -2,6 +2,8 @@ import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';
 const ROOT='smartbooks1/AI2027';
 const $=id=>document.getElementById(id);
+const isMobileLandscape=()=>window.matchMedia('(orientation:landscape) and (pointer:coarse) and (max-height:600px)').matches;
+const defaultFitMode=()=>isMobileLandscape()?'width':'page';
 let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,rotation=0,fitMode="page",task=0,loadingTask=null;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
@@ -17,7 +19,7 @@ async function loadBooks(){
  info('도서 목록을 불러오는 중입니다…');
  try{
   const response=await fetch('./config/books.json',{cache:'no-store'});if(!response.ok)throw Error('설정 파일 없음');
-  const config=await response.json();$('siteTitle').textContent=config.siteTitle||'AI2027 전자책 자료실';
+  const config=await response.json();const siteTitle=config.siteTitle||'AI2027 전자책 자료실';$('siteTitle').textContent=siteTitle;document.title=siteTitle;
   const declared=(config.books||[]).filter(b=>b.visible!==false&&b.file);
   books=declared.length?declared:(config.autoDiscover?await discover():[]);
   if(!books.length){info('등록된 PDF가 없습니다. 저장소에 PDF를 올리거나 config/books.json을 설정해 주세요.');return}
@@ -27,7 +29,7 @@ async function loadBooks(){
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 async function openBook(index){
- current=index;page=1;zoom=1;rotation=0;fitMode='page';const id=++task;const b=books[index];
+ current=index;page=1;zoom=1;rotation=0;fitMode=defaultFitMode();const id=++task;const b=books[index];
  if(loadingTask){try{loadingTask.destroy()}catch{}loadingTask=null}
  pdf=null;$('title').textContent=b.title;
  document.querySelectorAll('.chapter').forEach((n,i)=>n.classList.toggle('active',i===index));
@@ -83,6 +85,7 @@ function syncMobileSettings(){
 document.addEventListener('pointerdown',e=>{if(!mobileSettings.hidden&&!e.target.closest('#mobileSettings')&&!e.target.closest('#mobileMore'))closeMobileSettings()});
 function refreshMobileLayout(){
  closeMobileSettings();
+ const desired=defaultFitMode();if(fitMode!==desired){fitMode=desired;zoom=1;refreshModeButtons()}
  const mobile=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
  if(mobile){$('sidebar').classList.remove('open');$('menu').textContent='☰ 목차';$('menu').setAttribute('aria-expanded','false')}
  else{$('menu').textContent=document.querySelector('.layout').classList.contains('sidebar-collapsed')?'☰ 목차 열기':'☰ 목차 접기'}
