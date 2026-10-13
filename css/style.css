@@ -125,3 +125,19 @@
  .edge-next{right:10px}
  .layout.sidebar-collapsed .edge-prev{left:10px}
 }
+
+/* Resume reading prompt; never obstruct the initial PDF opening. */
+.main{position:relative}
+.resume-prompt[hidden]{display:none!important}
+.resume-prompt{position:fixed;bottom:22px;right:22px;z-index:15;width:min(355px,calc(100vw - 30px));background:#fff;border:1px solid #d9e4f0;border-radius:15px;padding:16px;box-shadow:0 12px 40px #203f602b;display:grid;gap:13px}
+.resume-copy{display:grid;gap:5px;min-width:0}
+.resume-copy strong{font-size:14px;color:#203d59}
+.resume-copy span{font-size:12px;color:#63768c;overflow-wrap:anywhere;line-height:1.55}
+.resume-actions{display:flex;gap:8px}
+.resume-actions button{border-radius:9px;min-height:38px;padding:8px 12px;border:1px solid #d4e0ec;background:#fff;color:#425a73;font-weight:600;font-size:12px;cursor:pointer}
+#resumeContinue{background:#245b90;color:#fff;border-color:#245b90}
+.resume-actions button:hover{filter:brightness(.96)}
+@media(max-width:760px), (max-width:1000px) and (pointer:coarse){
+ .resume-prompt{bottom:max(12px,env(safe-area-inset-bottom));right:12px;width:calc(100vw - 24px);padding:13px}
+ .resume-actions button{flex:1}
+}
