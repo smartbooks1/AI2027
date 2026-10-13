@@ -18,3 +18,18 @@
 .message{padding:32px;color:#62748a;line-height:1.75;font-size:14px}.message.error{color:#b42332}.message[hidden]{display:none}
 @media(max-width:1100px){.toolbar{padding:10px 13px;gap:6px}.booktitle{flex-basis:100%;max-width:100%;order:-1;padding:0 4px 4px}.layout{grid-template-columns:250px minmax(0,1fr)}}
 @media(max-width:760px){.layout,.layout.sidebar-collapsed{display:block}.sidebar{display:none;padding:12px 14px;border-right:0;border-bottom:1px solid #e4e9f0}.sidebar.open{display:block}.sidebar .brand,.sidebar-label,.sidebar-note{display:none}.chapters{grid-template-columns:1fr}.toolbar{min-height:0;padding:10px 8px;gap:6px;justify-content:center}.toolbar button{font-size:11px;padding:8px 9px;min-height:36px}.toolbar .booktitle{order:-1;flex:1 0 100%;max-width:100%;font-size:13px;padding:3px 6px 5px;margin:0}.pageNumber{width:45px;padding:7px 3px}.viewer{padding:12px 8px;touch-action:pan-y pinch-zoom;overscroll-behavior-x:contain}.sheets{gap:5px;width:100%;min-width:0}.sheet{max-width:100%}#zoomLabel{min-width:34px}}
+
+/* Group navigation, zoom, and view controls without affecting the PDF canvas. */
+.toolbar{justify-content:space-between;gap:12px}
+.toolbar-heading{display:flex;align-items:center;gap:12px;flex:1 1 270px;min-width:0}
+.toolbar-heading .booktitle{margin:0;max-width:none;flex:1;min-width:0}
+.toolbar-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px;min-width:0}
+.tool-group{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid #e5ebf2;border-radius:12px;background:#f7f9fc}
+.toolbar .tool-group button{border-color:transparent;background:transparent;border-radius:8px;min-height:32px;padding:6px 10px}
+.toolbar .tool-group button:hover{background:#e6eef9}
+.tool-group label{padding:0 5px}
+.tool-group #zoomLabel{padding:0 5px}
+.page-divider{font-size:12px;white-space:nowrap}
+.toolbar .view-group button{font-weight:600}
+@media(max-width:1100px){.toolbar-heading{flex-basis:100%}.toolbar-heading .booktitle{white-space:nowrap;order:0;padding:0}.toolbar-actions{width:100%;justify-content:flex-start}}
+@media(max-width:760px){.toolbar{gap:8px;padding:9px}.toolbar-heading{display:flex;flex-basis:100%;gap:7px}.toolbar .booktitle{order:0;flex:1 1 auto;max-width:none;padding:0;white-space:nowrap}.toolbar-actions{gap:6px;justify-content:center}.tool-group{padding:2px;gap:1px}.toolbar .tool-group button{padding:6px 8px;min-height:32px;font-size:11px}.tool-group label{padding:0 2px}.toolbar .view-group button{font-size:11px}.pageNumber{width:40px}}
