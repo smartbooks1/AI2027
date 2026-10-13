@@ -23,7 +23,7 @@ async function loadBooks(){
   if(!books.length){info('등록된 PDF가 없습니다. 저장소에 PDF를 올리거나 config/books.json을 설정해 주세요.');return}
   books=books.map(b=>({...b,title:b.title||displayName(b.file)}));
   const nav=$('chapters');nav.replaceChildren();books.forEach((b,i)=>{const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn)});
-  const initial=new URLSearchParams(location.search).get('book');const idx=initial?books.findIndex(b=>b.file===initial):-1;await openBook(idx<0?0:idx);
+  await openBook(0);
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 async function openBook(index){
@@ -33,7 +33,7 @@ async function openBook(index){
  document.querySelectorAll('.chapter').forEach((n,i)=>n.classList.toggle('active',i===index));
  $('sidebar').classList.remove('open');$('sheets').replaceChildren();info('PDF를 불러오는 중입니다…');
  const dl=$('download');dl.classList.toggle('hidden',!b.allowDownload);dl.href=link(b.file);dl.download=b.file.split('/').pop();
- history.replaceState(null,'',location.pathname+'?book='+encodeURIComponent(b.file));
+ // Keep the reader URL unchanged when switching chapters.
  try{const job=pdfjsLib.getDocument({url:link(b.file)});loadingTask=job;const doc=await job.promise;if(id!==task){await doc.destroy();return}pdf=doc;loadingTask=null;await render()}
  catch(e){if(id===task)info('PDF 열기 실패: '+e.message,true)}
 }
@@ -60,14 +60,6 @@ $('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.2);render()};
 $('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.2);render()};
 $('fit').onclick=()=>{fitMode='width';zoom=1;render()};$('fitPage').onclick=()=>{fitMode='page';zoom=1;render()};
 $('spread').onclick=()=>{spread=!spread;$('spread').textContent=spread?'한 쪽 보기':'두 쪽 보기';render()};
-$('copyLink').onclick=async()=>{
- const url=location.href;
- try{
-  if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(url);
-  else{const input=document.createElement('textarea');input.value=url;input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();const ok=document.execCommand('copy');input.remove();if(!ok)throw Error('copy failed')}
-  const button=$('copyLink');button.textContent='복사 완료';setTimeout(()=>{button.textContent='장 주소 복사'},1800);
- }catch(e){window.prompt('이 장의 주소를 복사하세요:',url)}
-};
 
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
