@@ -33,3 +33,16 @@
 .toolbar .view-group button{font-weight:600}
 @media(max-width:1100px){.toolbar-heading{flex-basis:100%}.toolbar-heading .booktitle{white-space:nowrap;order:0;padding:0}.toolbar-actions{width:100%;justify-content:flex-start}}
 @media(max-width:760px){.toolbar{gap:8px;padding:9px}.toolbar-heading{display:flex;flex-basis:100%;gap:7px}.toolbar .booktitle{order:0;flex:1 1 auto;max-width:none;padding:0;white-space:nowrap}.toolbar-actions{gap:6px;justify-content:center}.tool-group{padding:2px;gap:1px}.toolbar .tool-group button{padding:6px 8px;min-height:32px;font-size:11px}.tool-group label{padding:0 2px}.toolbar .view-group button{font-size:11px}.pageNumber{width:40px}}
+
+/* PC reader controls: clearer grouping and visible selected reading mode */
+@media(min-width:1101px){
+ .toolbar{min-height:68px;padding:11px 18px;gap:12px}
+ .toolbar-heading{flex:1 1 250px}
+ .toolbar-actions{gap:9px}
+ .tool-group{background:#f8fafc}
+ .toolbar .tool-group button{font-size:12px;letter-spacing:-.01em}
+ .toolbar .tool-group button:focus-visible{outline:2px solid #6eabed}
+}
+.toolbar .view-group button.mode-active{color:#14598e;background:#e3f0ff;box-shadow:inset 0 0 0 1px #b9d8f6;font-weight:700}
+.toolbar .view-group button[aria-pressed="true"]{color:#14598e;background:#e3f0ff;box-shadow:inset 0 0 0 1px #b9d8f6;font-weight:700}
+.toolbar .tool-group button[aria-pressed="false"]:hover{background:#edf3fb}
