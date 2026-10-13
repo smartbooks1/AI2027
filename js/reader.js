@@ -60,6 +60,15 @@ $('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.2);render()};
 $('zoomOut').onclick=()=>{zoom=Math.max(.5,zoom-.2);render()};
 $('fit').onclick=()=>{fitMode='width';zoom=1;render()};$('fitPage').onclick=()=>{fitMode='page';zoom=1;render()};
 $('spread').onclick=()=>{spread=!spread;$('spread').textContent=spread?'한 쪽 보기':'두 쪽 보기';render()};
+$('copyLink').onclick=async()=>{
+ const url=location.href;
+ try{
+  if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(url);
+  else{const input=document.createElement('textarea');input.value=url;input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();const ok=document.execCommand('copy');input.remove();if(!ok)throw Error('copy failed')}
+  const button=$('copyLink');button.textContent='복사 완료';setTimeout(()=>{button.textContent='장 주소 복사'},1800);
+ }catch(e){window.prompt('이 장의 주소를 복사하세요:',url)}
+};
+
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
 window.addEventListener('resize',()=>{if(pdf)render()});
