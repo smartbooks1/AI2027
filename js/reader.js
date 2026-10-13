@@ -7,6 +7,21 @@ const defaultFitMode=()=>isMobileLandscape()?'width':'page';
 let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,rotation=0,fitMode="page",task=0,loadingTask=null;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
+const READING_KEY='ai2027:last-reading:v1';
+function readPosition(){try{const value=JSON.parse(localStorage.getItem(READING_KEY));return value&&typeof value.file==='string'&&Number.isInteger(value.page)&&value.page>=1?value:null}catch{return null}}
+function savePosition(){if(!pdf||!books[current])return;try{localStorage.setItem(READING_KEY,JSON.stringify({file:books[current].file,page}))}catch{}}
+function hideResume(){$('resumePrompt').hidden=true}
+function showResume(){
+ const last=readPosition();if(!last)return;
+ const index=books.findIndex(b=>b.file===last.file);
+ if(index<0||(index===0&&last.page===1))return;
+ const targetIndex=index;
+ $('resumeDetail').textContent=books[index].title+' · '+last.page+'쪽';
+ $('resumeContinue').onclick=()=>{hideResume();openBook(targetIndex,{resumePage:last.page})};
+ $('resumeDismiss').onclick=hideResume;
+ $('resumePrompt').hidden=false;
+}
+
 const info=(message,error=false)=>{$('message').textContent=message;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
  const resp=await fetch('https://api.github.com/repos/'+ROOT+'/git/trees/main?recursive=1',{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
@@ -25,18 +40,18 @@ async function loadBooks(){
   if(!books.length){info('등록된 PDF가 없습니다. 저장소에 PDF를 올리거나 config/books.json을 설정해 주세요.');return}
   books=books.map(b=>{const rule=(config.titleRules||[]).find(rule=>rule.contains&&b.file.includes(rule.contains));return {...b,title:rule?.title||b.title||displayName(b.file)}});
   const nav=$('chapters');nav.replaceChildren();books.forEach((b,i)=>{const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn)});
-  await openBook(0);
+  await openBook(0,{initial:true});showResume();
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
-async function openBook(index){
- current=index;page=1;zoom=1;rotation=0;fitMode=defaultFitMode();const id=++task;const b=books[index];
+async function openBook(index,options={}){
+ hideResume();current=index;page=1;zoom=1;rotation=0;fitMode=defaultFitMode();const id=++task;const b=books[index];
  if(loadingTask){try{loadingTask.destroy()}catch{}loadingTask=null}
  pdf=null;$('title').textContent=b.title;
  document.querySelectorAll('.chapter').forEach((n,i)=>n.classList.toggle('active',i===index));
  $('sidebar').classList.remove('open');$('sheets').replaceChildren();info('PDF를 불러오는 중입니다…');
  const dl=$('download');dl.classList.toggle('hidden',!b.allowDownload);dl.href=link(b.file);dl.download=b.file.split('/').pop();
  // Keep the reader URL unchanged when switching chapters.
- try{const job=pdfjsLib.getDocument({url:link(b.file)});loadingTask=job;const doc=await job.promise;if(id!==task){await doc.destroy();return}pdf=doc;loadingTask=null;await render()}
+ try{const job=pdfjsLib.getDocument({url:link(b.file)});loadingTask=job;const doc=await job.promise;if(id!==task){await doc.destroy();return}pdf=doc;loadingTask=null;if(options.resumePage)page=Math.max(1,Math.min(pdf.numPages,options.resumePage));await render();if(!options.initial)savePosition()}
  catch(e){if(id===task)info('PDF 열기 실패: '+e.message,true)}
 }
 async function render(){
@@ -83,7 +98,7 @@ async function render(){
   $('zoomLabel').textContent=Math.round(zoom*100)+'%';
  }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
 }
-function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(spread&&next>1&&next%2!==0)next-=1;page=next;$('viewer').scrollTop=0;render()}
+function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(spread&&next>1&&next%2!==0)next-=1;page=next;hideResume();savePosition();$('viewer').scrollTop=0;render()}
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()})}};
 $('prev').onclick=()=>navigate(spread?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(spread?(page===1?2:page+2):page+1);
 $('page').onchange=()=>navigate(Number($('page').value)||1);
