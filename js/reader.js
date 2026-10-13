@@ -53,7 +53,7 @@ async function render(){
  }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
 }
 function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(spread&&next>1&&next%2!==0)next-=1;page=next;$('viewer').scrollTop=0;render()}
-$('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>render())}};
+$('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>render())}};
 $('prev').onclick=()=>navigate(spread?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(spread?(page===1?2:page+2):page+1);
 $('page').onchange=()=>navigate(Number($('page').value)||1);
 $('zoomIn').onclick=()=>{zoom=Math.min(3,zoom+.1);render()};
@@ -64,9 +64,34 @@ function refreshModeButtons(){for(const [id,active] of [['fit',fitMode==='width'
 $('fit').onclick=()=>{fitMode='width';zoom=1;refreshModeButtons();render()};$('fitPage').onclick=()=>{fitMode='page';zoom=1;refreshModeButtons();render()};
 $('spread').onclick=()=>{spread=!spread;if(spread&&page>1&&page%2!==0)page-=1;$('spread').textContent=spread?'▤ 한 쪽':'▣ 두 쪽';refreshModeButtons();render()};
 
+
+// Mobile settings: controls proxy to the existing reader buttons.
+const mobileSettings=$('mobileSettings'), mobileMore=$('mobileMore');
+function closeMobileSettings(){mobileSettings.hidden=true;mobileMore.setAttribute('aria-expanded','false')}
+mobileMore.onclick=()=>{mobileSettings.hidden=!mobileSettings.hidden;mobileMore.setAttribute('aria-expanded',String(!mobileSettings.hidden));syncMobileSettings()};
+$('closeMobileSettings').onclick=closeMobileSettings;
+const mobileActions={mFit:'fit',mFitPage:'fitPage',mSpread:'spread',mRotateLeft:'rotateLeft',mRotateRight:'rotateRight'};
+for(const [mobileId,sourceId] of Object.entries(mobileActions)){
+ $(mobileId).onclick=()=>{$(sourceId).click();syncMobileSettings();closeMobileSettings()};
+}
+function syncMobileSettings(){
+ for(const [mobileId,sourceId] of Object.entries({mFit:'fit',mFitPage:'fitPage',mSpread:'spread'})){
+  $(mobileId).setAttribute('aria-pressed',$(sourceId).getAttribute('aria-pressed')||'false');
+ }
+ $('mSpread').textContent=spread?'▤ 한 쪽 보기':'▣ 두 쪽 보기';
+}
+document.addEventListener('pointerdown',e=>{if(!mobileSettings.hidden&&!e.target.closest('#mobileSettings')&&!e.target.closest('#mobileMore'))closeMobileSettings()});
+function refreshMobileLayout(){
+ closeMobileSettings();
+ const mobile=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
+ if(mobile){$('sidebar').classList.remove('open');$('menu').textContent='☰ 목차';$('menu').setAttribute('aria-expanded','false')}
+ else{$('menu').textContent=document.querySelector('.layout').classList.contains('sidebar-collapsed')?'☰ 목차 열기':'☰ 목차 접기'}
+ if(pdf)requestAnimationFrame(()=>render());
+}
+window.addEventListener('orientationchange',()=>setTimeout(refreshMobileLayout,120));
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
-window.addEventListener('resize',()=>{if(pdf)render()});
+window.addEventListener('resize',()=>{if(pdf)requestAnimationFrame(()=>render())});
 // Pointer Events swipe navigation (touch screens); allow vertical scrolling.
 let swipeStart=null;
 const area=$('viewer');
