@@ -10,6 +10,56 @@ let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,rotation=0,fitMode="p
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
 const READING_KEY='ai2027:last-reading:v1';
+// Keep a small, pixel-budgeted LRU cache of rendered pages (not PDF originals).
+const pageCache=new Map();
+const MAX_CACHE_PIXELS=8500000;
+let cachePixels=0,cacheEpoch=0,prefetchToken=0,prefetchTimer=null,renderedSignature='';
+function resetPageCache(){
+ cacheEpoch++;prefetchToken++;clearTimeout(prefetchTimer);prefetchTimer=null;
+ pageCache.clear();cachePixels=0;renderedSignature='';
+}
+function cachedPage(key){
+ const item=pageCache.get(key);
+ if(item){pageCache.delete(key);pageCache.set(key,item)}
+ return item;
+}
+function storePage(key,canvas,epoch){
+ if(epoch!==cacheEpoch||canvas.width*canvas.height>MAX_CACHE_PIXELS/2)return;
+ const old=pageCache.get(key);if(old){cachePixels-=old.width*old.height;pageCache.delete(key)}
+ pageCache.set(key,canvas);cachePixels+=canvas.width*canvas.height;
+ while(cachePixels>MAX_CACHE_PIXELS&&pageCache.size>1){
+  const oldest=pageCache.keys().next().value,removed=pageCache.get(oldest);
+  cachePixels-=removed.width*removed.height;pageCache.delete(oldest);
+ }
+}
+function pageKey(n,width,height,angle){return [n,width,height,angle].join(':')}
+function upcomingPages(start,total,paired){
+ const next=paired?(start===1?2:start+2):start+1;
+ return next>total?[]:paired?[next,next+1].filter(n=>n<=total):[next];
+}
+async function prefetchPage(n,scale,dpr,angle,documentRef,epoch,token){
+ if(epoch!==cacheEpoch||token!==prefetchToken||documentRef!==pdf)return;
+ const p=await documentRef.getPage(n);
+ if(epoch!==cacheEpoch||token!==prefetchToken||documentRef!==pdf)return;
+ const viewport=p.getViewport({scale:scale*dpr,rotation:(p.rotate+angle)%360});
+ const w=Math.ceil(viewport.width),h=Math.ceil(viewport.height);
+ const key=pageKey(n,w,h,angle);
+ if(pageCache.has(key)||w*h>MAX_CACHE_PIXELS/2)return;
+ const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+ await p.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+ if(epoch===cacheEpoch&&token===prefetchToken&&documentRef===pdf)storePage(key,canvas,epoch);
+}
+function queuePrefetch(start,total,paired,scale,dpr,angle,documentRef){
+ clearTimeout(prefetchTimer);
+ const token=++prefetchToken,epoch=cacheEpoch;
+ prefetchTimer=setTimeout(async()=>{
+  for(const n of upcomingPages(start,total,paired)){
+   if(token!==prefetchToken||epoch!==cacheEpoch||documentRef!==pdf)break;
+   try{await prefetchPage(n,scale,dpr,angle,documentRef,epoch,token)}catch{}
+  }
+ },180);
+}
+
 function readPosition(){try{const value=JSON.parse(localStorage.getItem(READING_KEY));return value&&typeof value.file==='string'&&Number.isInteger(value.page)&&value.page>=1?value:null}catch{return null}}
 function savePosition(){if(!pdf||!books[current])return;try{localStorage.setItem(READING_KEY,JSON.stringify({file:books[current].file,page}))}catch{}}
 function hideResume(){$('resumePrompt').hidden=true}
@@ -46,7 +96,7 @@ async function loadBooks(){
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 async function openBook(index,options={}){
- hideResume();current=index;page=1;zoom=1;rotation=0;fitMode=defaultFitMode();const id=++task;const b=books[index];
+ hideResume();resetPageCache();current=index;page=1;zoom=1;rotation=0;fitMode=defaultFitMode();const id=++task;const b=books[index];
  if(loadingTask){try{loadingTask.destroy()}catch{}loadingTask=null}
  pdf=null;$('title').textContent=b.title;
  document.querySelectorAll('.chapter').forEach((n,i)=>n.classList.toggle('active',i===index));
@@ -58,47 +108,57 @@ async function openBook(index,options={}){
 }
 async function render(){
  if(!pdf)return;
- const id=++task;
- // Spread slots are always two pages: blank+cover, paired pages, or final page+blank.
- const slots=!effectiveSpread()?[page]:page===1?[null,1]:[page,page+1<=pdf.numPages?page+1:null];
+ const id=++task,documentRef=pdf,epoch=cacheEpoch;
+ const paired=effectiveSpread();
+ const slots=!paired?[page]:page===1?[null,1]:[page,page+1<=pdf.numPages?page+1:null];
+ const viewer=$('viewer');
+ const signature=[documentRef,page,paired,zoom,rotation,fitMode,viewer.clientWidth,viewer.clientHeight,window.innerHeight].join('|');
+ if(renderedSignature===signature)return;
+ clearTimeout(prefetchTimer);prefetchToken++;
  info('페이지를 표시하는 중입니다…');$('sheets').replaceChildren();
  try{
-  const loaded=await Promise.all(slots.map(n=>n===null?null:pdf.getPage(n)));
-  if(id!==task)return;
+  const loaded=await Promise.all(slots.map(n=>n===null?null:documentRef.getPage(n)));
+  if(id!==task||documentRef!==pdf)return;
   const real=loaded.filter(Boolean);
-  const vw=Math.max(200,$('viewer').clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
+  const vw=Math.max(200,viewer.clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
   const base=real.map(p=>p.getViewport({scale:1,rotation:(p.rotate+rotation)%360}));
-  const slotCount=slots.length;
-  const gap=effectiveSpread()?4:0;
+  const slotCount=slots.length,gap=paired?4:0;
   const widthScale=Math.min(...base.map(v=>(vw-gap*(slotCount-1))/(v.width*slotCount)));
-  const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-64);
+  const availableHeight=Math.max(160,window.innerHeight-viewer.getBoundingClientRect().top-64);
   const heightScale=Math.min(...base.map(v=>availableHeight/v.height));
   const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
-  const canvases=loaded.map(p=>{
+  const canvases=loaded.map((p,i)=>{
    if(!p)return null;
    const view=p.getViewport({scale:scale*dpr,rotation:(p.rotate+rotation)%360});
-   const canvas=document.createElement('canvas');canvas.className='sheet';
-   canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);
+   const w=Math.ceil(view.width),h=Math.ceil(view.height),key=pageKey(slots[i],w,h,rotation);
+   const cached=cachedPage(key),canvas=document.createElement('canvas');
+   canvas.className='sheet';canvas.width=w;canvas.height=h;
    canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';
-   return {p,view,canvas};
+   return {p,view,canvas,key,cached};
   });
-  $('sheets').classList.toggle('spread-mode',effectiveSpread());
+  $('sheets').classList.toggle('spread-mode',paired);
   const blankReference=canvases.find(Boolean)?.canvas;
   canvases.forEach(item=>{
    if(item){$('sheets').appendChild(item.canvas);return}
-   const blank=document.createElement('div');blank.className='blank-page';
-   blank.setAttribute('aria-label','빈 페이지');
+   const blank=document.createElement('div');blank.className='blank-page';blank.setAttribute('aria-label','빈 페이지');
    blank.style.width=blankReference.style.width;blank.style.height=blankReference.style.height;
    $('sheets').appendChild(blank);
   });
-  await Promise.all(canvases.filter(Boolean).map(c=>c.p.render({canvasContext:c.canvas.getContext('2d'),viewport:c.view}).promise));
-  if(id!==task)return;
+  await Promise.all(canvases.filter(Boolean).map(async c=>{
+   const ctx=c.canvas.getContext('2d');
+   if(c.cached){ctx.drawImage(c.cached,0,0);return}
+   await c.p.render({canvasContext:ctx,viewport:c.view}).promise;
+   if(id===task&&documentRef===pdf)storePage(c.key,c.canvas,epoch);
+  }));
+  if(id!==task||documentRef!==pdf)return;
+  renderedSignature=signature;
   $('message').hidden=true;refreshModeButtons();
-  $('page').value=page;$('page').max=pdf.numPages;$('total').textContent=pdf.numPages;
+  $('page').value=page;$('page').max=documentRef.numPages;$('total').textContent=documentRef.numPages;
   $('prev').disabled=page<=1;$('edgePrev').disabled=$('prev').disabled;
-  $('next').disabled=page+(effectiveSpread()&&page>1?1:0)>=pdf.numPages;$('edgeNext').disabled=$('next').disabled;
+  $('next').disabled=page+(paired&&page>1?1:0)>=documentRef.numPages;$('edgeNext').disabled=$('next').disabled;
   $('zoomLabel').textContent=Math.round(zoom*100)+'%';
- }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
+  queuePrefetch(page,documentRef.numPages,paired,scale,dpr,rotation,documentRef);
+ }catch(e){if(id===task&&documentRef===pdf)info('페이지 표시 실패: '+e.message,true)}
 }
 function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(effectiveSpread()&&next>1&&next%2!==0)next-=1;page=next;hideResume();savePosition();$('viewer').scrollTop=0;render()}
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()})}};
