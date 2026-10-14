@@ -1,0 +1,20 @@
+{
+  "siteTitle": "[AI 2027] 부록(전자책)",
+  "autoDiscover": true,
+  "books": [],
+  "titleRules": [
+    {
+      "contains": "특별부록2",
+      "title": "특별부록 2 · 워크시트"
+    },
+    {
+      "contains": "특별부록3",
+      "title": "특별부록 3 · 워드패밀리 연습"
+    }
+  ],
+  "readerDefaults": {
+    "fit": "auto",
+    "twoPage": false,
+    "allowDownload": false
+  }
+}
