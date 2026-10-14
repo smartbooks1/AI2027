@@ -111,8 +111,9 @@ function configuredBooks(config,discovered){
  if(!config||typeof config!=='object'||Array.isArray(config))throw Error('books.json의 최상위 값은 { } 형태여야 합니다.');
  if(config.books!==undefined&&!Array.isArray(config.books))throw Error('books 항목은 [ ] 목록이어야 합니다.');
  if(config.titleRules!==undefined&&!Array.isArray(config.titleRules))throw Error('titleRules 항목은 [ ] 목록이어야 합니다.');
+ if(config.siteTitle!==undefined&&(typeof config.siteTitle!=='string'||!config.siteTitle.trim()))throw Error('siteTitle에는 비어 있지 않은 책 제목을 입력해 주세요.');
  if(config.autoDiscover!==undefined&&typeof config.autoDiscover!=='boolean')throw Error('autoDiscover는 true 또는 false로 지정해 주세요.');
- const defaults=config.readerDefaults||{};
+ const defaults=config.readerDefaults===undefined?{}:config.readerDefaults;
  if(!defaults||typeof defaults!=='object'||Array.isArray(defaults))throw Error('readerDefaults는 { } 형태여야 합니다.');
  if(defaults.fit!==undefined&&!['auto','width','page'].includes(defaults.fit))throw Error('readerDefaults.fit은 auto, width, page 중 하나여야 합니다.');
  for(const key of ['twoPage','allowDownload'])if(defaults[key]!==undefined&&typeof defaults[key]!=='boolean')throw Error('readerDefaults.'+key+'는 true 또는 false여야 합니다.');
@@ -124,14 +125,14 @@ function configuredBooks(config,discovered){
   if(!b||typeof b!=='object'||Array.isArray(b))throw Error(prefix+'은 { } 형태여야 합니다.');
   if(typeof b.file!=='string'||!b.file.trim()||!(/\.pdf$/i.test(b.file)))throw Error(prefix+'의 file에 PDF 경로(.pdf)를 입력해 주세요.');
   if(b.file.startsWith('/')||b.file.includes('\\')||b.file.split('/').some(p=>p==='.'||p==='..'||!p))throw Error(prefix+'의 file 경로를 확인해 주세요.');
-  if(seen.has(b.file))throw Error('PDF 경로가 중복되었습니다: '+b.file);
+  if(seen.has(b.file.toLocaleLowerCase()))throw Error(prefix+'의 PDF 경로가 중복되었습니다: '+b.file);
   if(b.allowDownload!==undefined&&typeof b.allowDownload!=='boolean')throw Error(prefix+'의 allowDownload는 true 또는 false로 지정해 주세요.');
   if(b.visible!==undefined&&typeof b.visible!=='boolean')throw Error(prefix+'의 visible은 true 또는 false로 지정해 주세요.');
   if(b.title!==undefined&&(typeof b.title!=='string'||!b.title.trim()))throw Error(prefix+'의 title을 확인해 주세요.');
-  seen.add(b.file);if(b.visible!==false)ordered.push(b);
+  seen.add(b.file.toLocaleLowerCase());if(b.visible!==false)ordered.push(b);
  }
  const auto=config.autoDiscover!==false;
- if(auto){for(const item of discovered){if(!seen.has(item.file))ordered.push(item)}}
+ if(auto){for(const item of discovered){if(!seen.has(item.file.toLocaleLowerCase()))ordered.push(item)}}
  return ordered.map(b=>{
   const rule=rules.find(x=>b.file.includes(x.contains));
   return {...b,title:b.title||rule?.title||displayName(b.file)};
@@ -142,8 +143,15 @@ async function loadBooks(){
  try{
   const response=await fetch('./config/books.json',{cache:'no-store'});if(!response.ok)throw Error('config/books.json을 찾을 수 없습니다 ('+response.status+').');
   let config;try{config=await response.json()}catch{throw Error('books.json 문법 오류: 쉼표, 따옴표, 괄호를 확인해 주세요.')}
+  // Validate settings before making network requests.
+  configuredBooks(config,[]);
   const discovered=config.autoDiscover!==false?await discover():[];
   books=configuredBooks(config,discovered);
+  // Verify manually listed PDFs using GitHub Pages paths, also when auto discovery is disabled.
+  const listed=books.filter(b=>(config.books||[]).some(x=>x.file===b.file));
+  const check=await Promise.all(listed.map(async b=>{try{const res=await fetch(link(b.file),{method:'HEAD',cache:'no-store'});return res.ok?null:b.file+' (HTTP '+res.status+')'}catch{return b.file+' (연결 확인 실패)'}}));
+  const missing=check.filter(Boolean);
+  if(missing.length)throw Error('지정한 PDF 파일을 찾지 못했습니다: '+missing.join(', ')+'. books.json의 file 경로와 실제 업로드 파일명을 확인해 주세요.');
   readerDefaults={fit:config.readerDefaults?.fit||'auto',twoPage:config.readerDefaults?.twoPage===true,allowDownload:config.readerDefaults?.allowDownload===true};
   spread=readerDefaults.twoPage;
   const siteTitle=typeof config.siteTitle==='string'&&config.siteTitle.trim()?config.siteTitle:'전자책 자료실';
