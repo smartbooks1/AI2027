@@ -224,3 +224,10 @@
  .toolbar .mobile-options #mResumeShortcut{order:8}
  .toolbar .mobile-options #mBookmarkDelete{order:9}
 }
+
+/* Clear, consistently aligned first/last page navigation glyphs. */
+.toolbar .tool-group #firstPage,.toolbar .tool-group #lastPage{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-width:36px;font-family:Arial,'Noto Sans KR',sans-serif;font-size:17px;font-weight:800;letter-spacing:-2px;line-height:1}
+.toolbar .tool-group #firstPage span,.toolbar .tool-group #lastPage span{display:block;transform:translateY(-1px)}
+@media(max-width:760px), (max-width:1000px) and (pointer:coarse){
+ .toolbar .tool-group #firstPage,.toolbar .tool-group #lastPage{min-width:31px;padding-left:4px;padding-right:6px;font-size:15px;font-weight:800}
+}
