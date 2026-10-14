@@ -180,7 +180,7 @@ async function render(){
   queuePrefetch(page,documentRef.numPages,paired,scale,dpr,rotation,documentRef);
  }catch(e){if(id===task&&documentRef===pdf)info('페이지 표시 실패: '+e.message,true)}
 }
-function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(effectiveSpread()&&next>1&&next%2!==0)next-=1;page=next;updateBookmarkButtons();$('viewer').scrollTop=0;render()}
+function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(effectiveSpread()&&next>1&&next%2!==0)next-=1;page=next;updateBookmarkButtons();$('page').value=page;$('firstPage').disabled=page<=1;$('prev').disabled=page<=1;$('lastPage').disabled=page+(effectiveSpread()&&page>1?1:0)>=pdf.numPages;$('next').disabled=$('lastPage').disabled;$('viewer').scrollTop=0;render()}
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()})}};
 $('prev').onclick=()=>navigate(effectiveSpread()?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(effectiveSpread()?(page===1?2:page+2):page+1);
 $('page').onchange=()=>navigate(Number($('page').value)||1);
