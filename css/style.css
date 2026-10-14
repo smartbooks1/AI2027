@@ -178,3 +178,12 @@
  .sheets.spread-mode{gap:3px}
  .sheets.spread-mode .sheet,.sheets.spread-mode .blank-page{flex-shrink:0}
 }
+
+/* Resume controls stay discreet after the one-time introduction. */
+#resumeShortcut[hidden],#mResumeShortcut[hidden]{display:none!important}
+.toolbar #resumeShortcut{border:1px solid #cbdff0;background:#eef5fc;color:#245680;border-radius:9px;min-height:35px;padding:7px 10px;font-size:12px;font-weight:700}
+.toolbar #resumeShortcut:hover{background:#e1eefb}
+@media(max-width:760px), (max-width:1000px) and (pointer:coarse){
+ .toolbar #resumeShortcut{display:none!important}
+ .toolbar .mobile-options #mResumeShortcut:not([hidden]){grid-column:1/-1;background:#edf5fd;color:#245680;border-color:#cbdff0}
+}
