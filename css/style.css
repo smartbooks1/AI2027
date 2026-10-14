@@ -150,3 +150,20 @@
  .resume-copy span{font-size:13px}
  .resume-actions button{flex:1;min-height:42px}
 }
+
+/* Explicit focus reading mode: hide toolbar and navigation, retain a discreet exit. */
+.toolbar #focusMode{border:1px solid #dce3eb;background:#f7f9fc;color:#285478;border-radius:9px;min-height:35px;padding:7px 10px;font-size:12px}
+.focus-exit[hidden]{display:none!important}
+.focus-exit{position:fixed;top:10px;right:12px;z-index:30;border:1px solid #d9e4f0;background:rgba(255,255,255,.92);border-radius:999px;color:#315573;box-shadow:0 5px 16px #233c5822;padding:9px 13px;font-size:12px;font-weight:700;cursor:pointer}
+.layout.focus-reading .toolbar{display:none!important}
+.layout.focus-reading .sidebar{display:none!important}
+.layout.focus-reading{display:block!important}
+.layout.focus-reading .main{min-height:100dvh}
+.layout.focus-reading .viewer{min-height:100dvh;padding-top:16px}
+.layout.focus-reading .edge-nav{display:none!important}
+@media(max-width:760px), (max-width:1000px) and (pointer:coarse){
+ .toolbar #focusMode{display:none!important}
+ .toolbar .mobile-options #mFocusMode{grid-column:1/-1;background:#e8f2fd;color:#245680;border-color:#bdd8f4}
+ .layout.focus-reading .viewer{padding-top:8px}
+ .layout.focus-reading .focus-exit{top:max(8px,env(safe-area-inset-top));right:9px;font-size:11px}
+}
