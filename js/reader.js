@@ -60,35 +60,39 @@ function queuePrefetch(start,total,paired,scale,dpr,angle,documentRef){
  },180);
 }
 
-const RESUME_PROMPT_SEEN='ai2027:resume-prompt-seen:v1';
-function readPosition(){try{const value=JSON.parse(localStorage.getItem(READING_KEY));return value&&typeof value.file==='string'&&Number.isInteger(value.page)&&value.page>=1?value:null}catch{return null}}
+// Explicit, single bookmark. Legacy automatic reading positions are not imported.
+const BOOKMARK_KEY='ai2027:manual-bookmark:v1';
+function readBookmark(){
+ try{const v=JSON.parse(localStorage.getItem(BOOKMARK_KEY));return v&&typeof v.file==='string'&&Number.isInteger(v.page)&&v.page>0?v:null}catch{return null}
+}
 function savedDestination(){
- const last=readPosition();if(!last)return null;
- const index=books.findIndex(b=>b.file===last.file);
- return index<0||(index===0&&last.page===1)?null:{index,page:last.page,title:books[index].title};
+ const saved=readBookmark();if(!saved)return null;
+ const index=books.findIndex(b=>b.file===saved.file);
+ return index<0?null:{index,page:saved.page,title:books[index].title};
 }
-function updateResumeShortcuts(){
- const exists=!!savedDestination();
- $('resumeShortcut').hidden=!exists;
- $('mResumeShortcut').hidden=!exists;
+function updateBookmarkButtons(){
+ const saved=savedDestination(),exists=!!saved;
+ for(const id of ['resumeShortcut','mResumeShortcut','bookmarkDelete','mBookmarkDelete'])$(id).hidden=!exists;
+ const here=!!(saved&&books[current]?.file===books[saved.index].file&&page===saved.page);
+ $('bookmarkSave').textContent=here?'★ 책갈피 저장됨':'☆ 책갈피 저장';
+ $('mBookmarkSave').textContent=here?'★ 이 페이지 저장됨':'☆ 현재 페이지 저장';
 }
-function savePosition(){if(!pdf||!books[current])return;try{localStorage.setItem(READING_KEY,JSON.stringify({file:books[current].file,page}))}catch{}updateResumeShortcuts()}
-function hideResume(){$('resumePrompt').hidden=true}
+function saveBookmark(){
+ if(!pdf||!books[current])return;
+ try{localStorage.setItem(BOOKMARK_KEY,JSON.stringify({file:books[current].file,page}))}catch{}
+ updateBookmarkButtons();closeMobileSettings();
+}
+function deleteBookmark(){
+ try{localStorage.removeItem(BOOKMARK_KEY)}catch{}
+ updateBookmarkButtons();closeMobileSettings();
+}
 function resumeReading(){
  const target=savedDestination();if(!target)return;
- hideResume();closeMobileSettings();openBook(target.index,{resumePage:target.page});
+ closeMobileSettings();openBook(target.index,{resumePage:target.page});
 }
-$('resumeShortcut').onclick=resumeReading;
-$('mResumeShortcut').onclick=resumeReading;
-function showResume(){
- updateResumeShortcuts();
- const target=savedDestination();if(!target)return;
- try{if(localStorage.getItem(RESUME_PROMPT_SEEN)==='1')return;localStorage.setItem(RESUME_PROMPT_SEEN,'1')}catch{}
- $('resumeDetail').textContent=target.title+' · '+target.page+'쪽';
- $('resumeContinue').onclick=resumeReading;
- $('resumeDismiss').onclick=hideResume;
- $('resumePrompt').hidden=false;
-}
+$('bookmarkSave').onclick=saveBookmark;$('mBookmarkSave').onclick=saveBookmark;
+$('bookmarkDelete').onclick=deleteBookmark;$('mBookmarkDelete').onclick=deleteBookmark;
+$('resumeShortcut').onclick=resumeReading;$('mResumeShortcut').onclick=resumeReading;
 
 const info=(message,error=false)=>{$('message').textContent=message;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
@@ -108,18 +112,18 @@ async function loadBooks(){
   if(!books.length){info('등록된 PDF가 없습니다. 저장소에 PDF를 올리거나 config/books.json을 설정해 주세요.');return}
   books=books.map(b=>{const rule=(config.titleRules||[]).find(rule=>rule.contains&&b.file.includes(rule.contains));return {...b,title:rule?.title||b.title||displayName(b.file)}});
   const nav=$('chapters');nav.replaceChildren();books.forEach((b,i)=>{const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn)});
-  await openBook(0,{initial:true});showResume();
+  await openBook(0,{initial:true});updateBookmarkButtons();
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 async function openBook(index,options={}){
- hideResume();resetPageCache();current=index;page=1;zoom=1;rotation=0;fitMode=defaultFitMode();const id=++task;const b=books[index];
+ resetPageCache();current=index;page=1;zoom=1;rotation=0;fitMode=defaultFitMode();const id=++task;const b=books[index];
  if(loadingTask){try{loadingTask.destroy()}catch{}loadingTask=null}
  pdf=null;$('title').textContent=b.title;
  document.querySelectorAll('.chapter').forEach((n,i)=>n.classList.toggle('active',i===index));
  $('sidebar').classList.remove('open');$('sheets').replaceChildren();info('PDF를 불러오는 중입니다…');
  const dl=$('download');dl.classList.toggle('hidden',!b.allowDownload);dl.href=link(b.file);dl.download=b.file.split('/').pop();
  // Keep the reader URL unchanged when switching chapters.
- try{const job=pdfjsLib.getDocument({url:link(b.file)});loadingTask=job;const doc=await job.promise;if(id!==task){await doc.destroy();return}pdf=doc;loadingTask=null;if(options.resumePage)page=Math.max(1,Math.min(pdf.numPages,options.resumePage));await render();if(!options.initial)savePosition()}
+ try{const job=pdfjsLib.getDocument({url:link(b.file)});loadingTask=job;const doc=await job.promise;if(id!==task){await doc.destroy();return}pdf=doc;loadingTask=null;if(options.resumePage)page=Math.max(1,Math.min(pdf.numPages,options.resumePage));await render();updateBookmarkButtons()}
  catch(e){if(id===task)info('PDF 열기 실패: '+e.message,true)}
 }
 async function render(){
@@ -176,7 +180,7 @@ async function render(){
   queuePrefetch(page,documentRef.numPages,paired,scale,dpr,rotation,documentRef);
  }catch(e){if(id===task&&documentRef===pdf)info('페이지 표시 실패: '+e.message,true)}
 }
-function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(effectiveSpread()&&next>1&&next%2!==0)next-=1;page=next;hideResume();savePosition();$('viewer').scrollTop=0;render()}
+function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(effectiveSpread()&&next>1&&next%2!==0)next-=1;page=next;updateBookmarkButtons();$('viewer').scrollTop=0;render()}
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()})}};
 $('prev').onclick=()=>navigate(effectiveSpread()?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(effectiveSpread()?(page===1?2:page+2):page+1);
 $('page').onchange=()=>navigate(Number($('page').value)||1);
