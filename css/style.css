@@ -169,3 +169,12 @@
  .layout.focus-reading .viewer{padding-top:8px}
  .layout.focus-reading .focus-exit{top:max(8px,env(safe-area-inset-top));right:9px;font-size:11px}
 }
+
+/* Mobile spread: portrait stays legible as a single page; landscape can show paired leaves. */
+@media (orientation:portrait) and (pointer:coarse){
+ .toolbar .mobile-options #mSpread:disabled{background:#f4f6f8;color:#8b98a7;border-color:#e2e7ec;opacity:1;cursor:not-allowed}
+}
+@media (orientation:landscape) and (pointer:coarse) and (max-height:600px){
+ .sheets.spread-mode{gap:3px}
+ .sheets.spread-mode .sheet,.sheets.spread-mode .blank-page{flex-shrink:0}
+}
