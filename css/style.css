@@ -211,3 +211,16 @@
  .toolbar .mobile-options #mResumeShortcut{order:7}
  .toolbar .mobile-options #mBookmarkDelete{order:8}
 }
+
+/* Landscape mobile settings: rotations on row 2, spread on row 3. */
+@media (orientation:landscape) and (pointer:coarse) and (max-height:600px){
+ .toolbar .mobile-options #mFit{order:1}
+ .toolbar .mobile-options #mFitPage{order:2}
+ .toolbar .mobile-options #mRotateLeft{order:3}
+ .toolbar .mobile-options #mRotateRight{order:4}
+ .toolbar .mobile-options #mSpread{order:5}
+ .toolbar .mobile-options #mFocusMode{order:6}
+ .toolbar .mobile-options #mBookmarkSave{order:7}
+ .toolbar .mobile-options #mResumeShortcut{order:8}
+ .toolbar .mobile-options #mBookmarkDelete{order:9}
+}
