@@ -160,7 +160,9 @@
 .layout.focus-reading{display:block!important}
 .layout.focus-reading .main{min-height:100dvh}
 .layout.focus-reading .viewer{min-height:100dvh;padding-top:16px}
-.layout.focus-reading .edge-nav{display:none!important}
+/* Keep desktop paging arrows available in focus mode; hidden on touch devices. */
+@media(max-width:1000px), (pointer:coarse){.layout.focus-reading .edge-nav{display:none!important}}
+@media(min-width:1001px) and (pointer:fine){.layout.focus-reading .edge-nav{display:grid!important;opacity:.55}.layout.focus-reading .edge-nav:hover{opacity:1}.layout.focus-reading .edge-prev{left:10px}.layout.focus-reading .edge-next{right:10px}}
 @media(max-width:760px), (max-width:1000px) and (pointer:coarse){
  .toolbar #focusMode{display:none!important}
  .toolbar .mobile-options #mFocusMode{grid-column:1/-1;background:#e8f2fd;color:#245680;border-color:#bdd8f4}
