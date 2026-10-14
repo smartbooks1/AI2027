@@ -1,6 +1,10 @@
 import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs';
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';
-const ROOT='smartbooks1/AI2027';
+// Discover the repository from the GitHub Pages hostname and first URL path.
+// Standard project Pages: account.github.io/repository/
+const PAGE_OWNER=location.hostname.endsWith('.github.io')?location.hostname.slice(0,-'.github.io'.length):'smartbooks1';
+const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathname.split('/').filter(Boolean)[0]||PAGE_OWNER+'.github.io'):'AI2027';
+const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const $=id=>document.getElementById(id);
 const isMobileLandscape=()=>window.matchMedia('(orientation:landscape) and (pointer:coarse) and (max-height:600px)').matches;
 const defaultFitMode=()=>isMobileLandscape()?'width':'page';
