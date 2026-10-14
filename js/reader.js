@@ -174,8 +174,8 @@ async function render(){
   renderedSignature=signature;
   $('message').hidden=true;refreshModeButtons();
   $('page').value=page;$('page').max=documentRef.numPages;$('total').textContent=documentRef.numPages;
-  $('prev').disabled=page<=1;$('edgePrev').disabled=$('prev').disabled;
-  $('next').disabled=page+(paired&&page>1?1:0)>=documentRef.numPages;$('edgeNext').disabled=$('next').disabled;
+  $('prev').disabled=page<=1;$('firstPage').disabled=page<=1;$('edgePrev').disabled=$('prev').disabled;
+  $('next').disabled=page+(paired&&page>1?1:0)>=documentRef.numPages;$('edgeNext').disabled=$('next').disabled;$('lastPage').disabled=$('next').disabled;
   $('zoomLabel').textContent=Math.round(zoom*100)+'%';
   queuePrefetch(page,documentRef.numPages,paired,scale,dpr,rotation,documentRef);
  }catch(e){if(id===task&&documentRef===pdf)info('페이지 표시 실패: '+e.message,true)}
@@ -184,6 +184,8 @@ function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPag
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()})}};
 $('prev').onclick=()=>navigate(effectiveSpread()?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(effectiveSpread()?(page===1?2:page+2):page+1);
 $('page').onchange=()=>navigate(Number($('page').value)||1);
+$('firstPage').onclick=()=>navigate(1);
+$('lastPage').onclick=()=>{if(pdf)navigate(pdf.numPages)};
 $('edgePrev').onclick=()=>$('prev').click();
 $('edgeNext').onclick=()=>$('next').click();
 function positionEdgeButtons(){document.querySelector('.layout').style.setProperty('--reader-left',document.querySelector('.main').getBoundingClientRect().left+'px')}
