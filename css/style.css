@@ -187,3 +187,27 @@
  .toolbar #resumeShortcut{display:none!important}
  .toolbar .mobile-options #mResumeShortcut:not([hidden]){grid-column:1/-1;background:#edf5fd;color:#245680;border-color:#cbdff0}
 }
+
+/* Explicit bookmark controls and compact two-column mobile settings. */
+#bookmarkDelete[hidden],#mBookmarkDelete[hidden],#bookmarkSave[hidden]{display:none!important}
+.toolbar #bookmarkSave,.toolbar #bookmarkDelete{border:1px solid #cbdff0;background:#f5f9fd;color:#245680;border-radius:9px;min-height:35px;padding:7px 10px;font-size:12px;font-weight:600}
+.toolbar #bookmarkDelete{background:#fff;color:#69798b}
+@media(max-width:760px), (max-width:1000px) and (pointer:coarse){
+ .toolbar #bookmarkSave,.toolbar #bookmarkDelete{display:none!important}
+ .mobile-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .toolbar .mobile-options button{grid-column:auto;min-width:0;min-height:43px;white-space:normal}
+ .toolbar .mobile-options #mFocusMode{grid-column:auto}
+ .toolbar .mobile-options #mBookmarkSave{grid-column:auto;background:#edf5fd;color:#245680;border-color:#cbdff0}
+ .toolbar .mobile-options #mResumeShortcut:not([hidden]),.toolbar .mobile-options #mBookmarkDelete:not([hidden]){grid-column:auto}
+}
+@media (orientation:portrait) and (pointer:coarse){
+ .toolbar .mobile-options #mSpread{display:none!important}
+ .toolbar .mobile-options #mFit{order:1}
+ .toolbar .mobile-options #mFitPage{order:2}
+ .toolbar .mobile-options #mRotateLeft{order:3}
+ .toolbar .mobile-options #mRotateRight{order:4}
+ .toolbar .mobile-options #mFocusMode{order:5}
+ .toolbar .mobile-options #mBookmarkSave{order:6}
+ .toolbar .mobile-options #mResumeShortcut{order:7}
+ .toolbar .mobile-options #mBookmarkDelete{order:8}
+}
