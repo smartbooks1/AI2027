@@ -231,3 +231,15 @@
 @media(max-width:760px), (max-width:1000px) and (pointer:coarse){
  .toolbar .tool-group #firstPage,.toolbar .tool-group #lastPage{min-width:31px;padding-left:4px;padding-right:6px;font-size:15px;font-weight:800}
 }
+
+/* Tighter arrows without reducing touch target visibility. */
+.toolbar .tool-group[aria-label="페이지 이동"]{gap:0;padding:2px}
+.toolbar .tool-group[aria-label="페이지 이동"] button{display:inline-flex;align-items:center;justify-content:center;padding:5px 5px;min-width:29px;line-height:1;touch-action:manipulation}
+.toolbar .tool-group[aria-label="페이지 이동"] #firstPage,.toolbar .tool-group[aria-label="페이지 이동"] #lastPage{min-width:30px;padding:5px 3px;font-size:17px;letter-spacing:-2px}
+.toolbar .tool-group[aria-label="페이지 이동"] label{gap:3px;padding:0 2px}
+@media(max-width:760px), (max-width:1000px) and (pointer:coarse){
+ .toolbar .tool-group[aria-label="페이지 이동"] button{min-width:29px;min-height:35px;padding:5px 3px}
+ .toolbar .tool-group[aria-label="페이지 이동"] #firstPage,.toolbar .tool-group[aria-label="페이지 이동"] #lastPage{min-width:30px;padding:5px 3px;font-size:16px}
+ .toolbar .tool-group[aria-label="페이지 이동"] label{gap:2px;padding:0 1px}
+ .toolbar .tool-group[aria-label="페이지 이동"] .pageNumber{width:36px}
+}
