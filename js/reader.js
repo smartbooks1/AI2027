@@ -60,16 +60,32 @@ function queuePrefetch(start,total,paired,scale,dpr,angle,documentRef){
  },180);
 }
 
+const RESUME_PROMPT_SEEN='ai2027:resume-prompt-seen:v1';
 function readPosition(){try{const value=JSON.parse(localStorage.getItem(READING_KEY));return value&&typeof value.file==='string'&&Number.isInteger(value.page)&&value.page>=1?value:null}catch{return null}}
-function savePosition(){if(!pdf||!books[current])return;try{localStorage.setItem(READING_KEY,JSON.stringify({file:books[current].file,page}))}catch{}}
-function hideResume(){$('resumePrompt').hidden=true}
-function showResume(){
- const last=readPosition();if(!last)return;
+function savedDestination(){
+ const last=readPosition();if(!last)return null;
  const index=books.findIndex(b=>b.file===last.file);
- if(index<0||(index===0&&last.page===1))return;
- const targetIndex=index;
- $('resumeDetail').textContent=books[index].title+' · '+last.page+'쪽';
- $('resumeContinue').onclick=()=>{hideResume();openBook(targetIndex,{resumePage:last.page})};
+ return index<0||(index===0&&last.page===1)?null:{index,page:last.page,title:books[index].title};
+}
+function updateResumeShortcuts(){
+ const exists=!!savedDestination();
+ $('resumeShortcut').hidden=!exists;
+ $('mResumeShortcut').hidden=!exists;
+}
+function savePosition(){if(!pdf||!books[current])return;try{localStorage.setItem(READING_KEY,JSON.stringify({file:books[current].file,page}))}catch{}updateResumeShortcuts()}
+function hideResume(){$('resumePrompt').hidden=true}
+function resumeReading(){
+ const target=savedDestination();if(!target)return;
+ hideResume();closeMobileSettings();openBook(target.index,{resumePage:target.page});
+}
+$('resumeShortcut').onclick=resumeReading;
+$('mResumeShortcut').onclick=resumeReading;
+function showResume(){
+ updateResumeShortcuts();
+ const target=savedDestination();if(!target)return;
+ try{if(localStorage.getItem(RESUME_PROMPT_SEEN)==='1')return;localStorage.setItem(RESUME_PROMPT_SEEN,'1')}catch{}
+ $('resumeDetail').textContent=target.title+' · '+target.page+'쪽';
+ $('resumeContinue').onclick=resumeReading;
  $('resumeDismiss').onclick=hideResume;
  $('resumePrompt').hidden=false;
 }
