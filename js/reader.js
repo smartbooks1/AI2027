@@ -17,7 +17,9 @@ const link=path=>path.split('/').map(encodeURIComponent).join('/');
 const READING_KEY='ai2027:last-reading:v1';
 // Keep a small, pixel-budgeted LRU cache of rendered pages (not PDF originals).
 const pageCache=new Map();
-const MAX_CACHE_PIXELS=8500000;
+// Adapt the pixel budget to device memory; larger than the former 8.5M pixels.
+const MAX_CACHE_PIXELS=(navigator.deviceMemory&&navigator.deviceMemory<=2)?10000000:((navigator.deviceMemory&&navigator.deviceMemory<=4)?18000000:30000000);
+const MAX_PAGE_PIXELS=Math.floor(MAX_CACHE_PIXELS*0.75);
 let cachePixels=0,cacheEpoch=0,prefetchToken=0,prefetchTimer=null,renderedSignature='';
 function resetPageCache(){
  cacheEpoch++;prefetchToken++;clearTimeout(prefetchTimer);prefetchTimer=null;
@@ -29,7 +31,7 @@ function cachedPage(key){
  return item;
 }
 function storePage(key,canvas,epoch){
- if(epoch!==cacheEpoch||canvas.width*canvas.height>MAX_CACHE_PIXELS/2)return;
+ if(epoch!==cacheEpoch||canvas.width*canvas.height>MAX_PAGE_PIXELS)return;
  const old=pageCache.get(key);if(old){cachePixels-=old.width*old.height;pageCache.delete(key)}
  pageCache.set(key,canvas);cachePixels+=canvas.width*canvas.height;
  while(cachePixels>MAX_CACHE_PIXELS&&pageCache.size>1){
@@ -49,10 +51,11 @@ async function prefetchPage(n,scale,dpr,angle,documentRef,epoch,token){
  const viewport=p.getViewport({scale:scale*dpr,rotation:(p.rotate+angle)%360});
  const w=Math.ceil(viewport.width),h=Math.ceil(viewport.height);
  const key=pageKey(n,w,h,angle);
- if(pageCache.has(key)||w*h>MAX_CACHE_PIXELS/2)return;
+ if(pageCache.has(key)||w*h>MAX_PAGE_PIXELS)return;
  const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
  await p.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
- if(epoch===cacheEpoch&&token===prefetchToken&&documentRef===pdf)storePage(key,canvas,epoch);
+ // A completed prefetch remains useful when the reader advances meanwhile.
+ if(epoch===cacheEpoch&&documentRef===pdf)storePage(key,canvas,epoch);
 }
 function queuePrefetch(start,total,paired,scale,dpr,angle,documentRef){
  clearTimeout(prefetchTimer);
@@ -62,7 +65,7 @@ function queuePrefetch(start,total,paired,scale,dpr,angle,documentRef){
    if(token!==prefetchToken||epoch!==cacheEpoch||documentRef!==pdf)break;
    try{await prefetchPage(n,scale,dpr,angle,documentRef,epoch,token)}catch{}
   }
- },180);
+ },60);
 }
 
 // Explicit, single bookmark. Legacy automatic reading positions are not imported.
@@ -214,7 +217,8 @@ async function render(){
    const ctx=c.canvas.getContext('2d');
    if(c.cached){ctx.drawImage(c.cached,0,0);return}
    await c.p.render({canvasContext:ctx,viewport:c.view}).promise;
-   if(id===task&&documentRef===pdf)storePage(c.key,c.canvas,epoch);
+   // Cache a finished render even if a newer page request has begun.
+   if(documentRef===pdf)storePage(c.key,c.canvas,epoch);
   }));
   if(id!==task||documentRef!==pdf)return;
   renderedSignature=signature;
