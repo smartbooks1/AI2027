@@ -141,3 +141,12 @@
  .resume-prompt{bottom:max(12px,env(safe-area-inset-bottom));right:12px;width:calc(100vw - 24px);padding:13px}
  .resume-actions button{flex:1}
 }
+
+/* Center the resume prompt on desktop; retain bottom sheet on mobile. */
+@media (min-width:1001px) and (pointer:fine){
+ .resume-prompt:not([hidden]){left:50%;top:50%;right:auto;bottom:auto;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 40px));padding:24px;gap:18px;z-index:21;box-shadow:0 18px 55px #152b4440}
+ .resume-prompt:not([hidden])::before{content:"";position:fixed;inset:-100vmax;background:rgba(26,43,64,.18);z-index:-1;pointer-events:none}
+ .resume-copy strong{font-size:17px}
+ .resume-copy span{font-size:13px}
+ .resume-actions button{flex:1;min-height:42px}
+}
