@@ -154,7 +154,7 @@ async function openBook(index,options={}){
  const dl=$('download');dl.classList.toggle('hidden',!b.allowDownload);dl.href=link(b.file);dl.download=b.file.split('/').pop();
  // Keep the reader URL unchanged when switching chapters.
  try{const job=pdfjsLib.getDocument({url:link(b.file)});loadingTask=job;const doc=await job.promise;if(id!==task){await doc.destroy();return}pdf=doc;loadingTask=null;if(options.resumePage)page=Math.max(1,Math.min(pdf.numPages,options.resumePage));await render();updateBookmarkButtons()}
- catch(e){if(id===task)info('PDF 열기 실패: '+e.message,true)}
+ catch(e){if(id===task)info('PDF 열기 실패 ('+b.file+'): GitHub에 해당 PDF가 있는지 파일명과 경로를 확인해 주세요. '+e.message,true)}
 }
 async function render(){
  if(!pdf)return;
