@@ -243,3 +243,6 @@
  .toolbar .tool-group[aria-label="페이지 이동"] label{gap:2px;padding:0 1px}
  .toolbar .tool-group[aria-label="페이지 이동"] .pageNumber{width:36px}
 }
+
+/* Transparent SmartBooks logo */
+.brand-logo{display:block;width:48px;height:48px;flex:0 0 48px;object-fit:contain;background:transparent;border:0}
