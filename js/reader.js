@@ -4,6 +4,8 @@ const ROOT='smartbooks1/AI2027';
 const $=id=>document.getElementById(id);
 const isMobileLandscape=()=>window.matchMedia('(orientation:landscape) and (pointer:coarse) and (max-height:600px)').matches;
 const defaultFitMode=()=>isMobileLandscape()?'width':'page';
+const isMobilePortrait=()=>window.matchMedia('(orientation:portrait) and (pointer:coarse)').matches;
+const effectiveSpread=()=>spread&&!isMobilePortrait();
 let books=[],pdf=null,current=0,page=1,spread=false,zoom=1,rotation=0,fitMode="page",task=0,loadingTask=null;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
@@ -58,7 +60,7 @@ async function render(){
  if(!pdf)return;
  const id=++task;
  // Spread slots are always two pages: blank+cover, paired pages, or final page+blank.
- const slots=!spread?[page]:page===1?[null,1]:[page,page+1<=pdf.numPages?page+1:null];
+ const slots=!effectiveSpread()?[page]:page===1?[null,1]:[page,page+1<=pdf.numPages?page+1:null];
  info('페이지를 표시하는 중입니다…');$('sheets').replaceChildren();
  try{
   const loaded=await Promise.all(slots.map(n=>n===null?null:pdf.getPage(n)));
@@ -67,7 +69,7 @@ async function render(){
   const vw=Math.max(200,$('viewer').clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
   const base=real.map(p=>p.getViewport({scale:1,rotation:(p.rotate+rotation)%360}));
   const slotCount=slots.length;
-  const gap=spread?4:0;
+  const gap=effectiveSpread()?4:0;
   const widthScale=Math.min(...base.map(v=>(vw-gap*(slotCount-1))/(v.width*slotCount)));
   const availableHeight=Math.max(160,window.innerHeight-$('viewer').getBoundingClientRect().top-64);
   const heightScale=Math.min(...base.map(v=>availableHeight/v.height));
@@ -80,7 +82,7 @@ async function render(){
    canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';
    return {p,view,canvas};
   });
-  $('sheets').classList.toggle('spread-mode',spread);
+  $('sheets').classList.toggle('spread-mode',effectiveSpread());
   const blankReference=canvases.find(Boolean)?.canvas;
   canvases.forEach(item=>{
    if(item){$('sheets').appendChild(item.canvas);return}
@@ -94,13 +96,13 @@ async function render(){
   $('message').hidden=true;refreshModeButtons();
   $('page').value=page;$('page').max=pdf.numPages;$('total').textContent=pdf.numPages;
   $('prev').disabled=page<=1;$('edgePrev').disabled=$('prev').disabled;
-  $('next').disabled=page+(spread&&page>1?1:0)>=pdf.numPages;$('edgeNext').disabled=$('next').disabled;
+  $('next').disabled=page+(effectiveSpread()&&page>1?1:0)>=pdf.numPages;$('edgeNext').disabled=$('next').disabled;
   $('zoomLabel').textContent=Math.round(zoom*100)+'%';
  }catch(e){if(id===task)info('페이지 표시 실패: '+e.message,true)}
 }
-function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(spread&&next>1&&next%2!==0)next-=1;page=next;hideResume();savePosition();$('viewer').scrollTop=0;render()}
+function navigate(target){if(!pdf)return;let next=Math.max(1,Math.min(pdf.numPages,target));if(effectiveSpread()&&next>1&&next%2!==0)next-=1;page=next;hideResume();savePosition();$('viewer').scrollTop=0;render()}
 $('menu').onclick=()=>{const small=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;if(small){const opened=$('sidebar').classList.toggle('open');$('menu').textContent=opened?'☰ 목차 닫기':'☰ 목차 열기'}else{const collapsed=document.querySelector('.layout').classList.toggle('sidebar-collapsed');$('menu').textContent=collapsed?'☰ 목차 열기':'☰ 목차 접기';if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()})}};
-$('prev').onclick=()=>navigate(spread?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(spread?(page===1?2:page+2):page+1);
+$('prev').onclick=()=>navigate(effectiveSpread()?(page<=2?1:page-2):page-1);$('next').onclick=()=>navigate(effectiveSpread()?(page===1?2:page+2):page+1);
 $('page').onchange=()=>navigate(Number($('page').value)||1);
 $('edgePrev').onclick=()=>$('prev').click();
 $('edgeNext').onclick=()=>$('next').click();
@@ -112,7 +114,7 @@ $('rotateLeft').onclick=()=>{rotation=(rotation+270)%360;render()};
 $('rotateRight').onclick=()=>{rotation=(rotation+90)%360;render()};
 function refreshModeButtons(){for(const [id,active] of [['fit',fitMode==='width'],['fitPage',fitMode==='page'],['spread',spread]]){$(id).setAttribute('aria-pressed',String(active));$(id).classList.toggle('mode-active',active)}}
 $('fit').onclick=()=>{fitMode='width';zoom=1;refreshModeButtons();render()};$('fitPage').onclick=()=>{fitMode='page';zoom=1;refreshModeButtons();render()};
-$('spread').onclick=()=>{spread=!spread;if(spread&&page>1&&page%2!==0)page-=1;$('spread').textContent=spread?'▤ 한 쪽':'▣ 두 쪽';refreshModeButtons();render()};
+$('spread').onclick=()=>{spread=!spread;if(effectiveSpread()&&page>1&&page%2!==0)page-=1;$('spread').textContent=spread?'▤ 한 쪽':'▣ 두 쪽';refreshModeButtons();render()};
 
 
 // Enter focus mode only through explicit controls; restore via exit or deliberate tap.
@@ -144,12 +146,16 @@ function syncMobileSettings(){
  for(const [mobileId,sourceId] of Object.entries({mFit:'fit',mFitPage:'fitPage',mSpread:'spread'})){
   $(mobileId).setAttribute('aria-pressed',$(sourceId).getAttribute('aria-pressed')||'false');
  }
- $('mSpread').textContent=spread?'▤ 한 쪽 보기':'▣ 두 쪽 보기';
+ $('mSpread').disabled=isMobilePortrait();
+ $('mSpread').title=isMobilePortrait()?'두 쪽 보기는 가로 화면에서 사용할 수 있습니다.':'';
+ $('mSpread').textContent=isMobilePortrait()?'▣ 두 쪽 (가로에서)':spread?'▤ 한 쪽 보기':'▣ 두 쪽 보기';
 }
 document.addEventListener('pointerdown',e=>{if(!mobileSettings.hidden&&!e.target.closest('#mobileSettings')&&!e.target.closest('#mobileMore'))closeMobileSettings()});
 function refreshMobileLayout(){
  closeMobileSettings();
  const desired=defaultFitMode();if(fitMode!==desired){fitMode=desired;zoom=1;refreshModeButtons()}
+ if(effectiveSpread()&&page>1&&page%2!==0)page-=1;
+ syncMobileSettings();
  const mobile=window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
  if(mobile){$('sidebar').classList.remove('open');$('menu').textContent='☰ 목차';$('menu').setAttribute('aria-expanded','false')}
  else{$('menu').textContent=document.querySelector('.layout').classList.contains('sidebar-collapsed')?'☰ 목차 열기':'☰ 목차 접기'}
