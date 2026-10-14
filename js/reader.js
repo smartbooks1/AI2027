@@ -115,6 +115,22 @@ $('fit').onclick=()=>{fitMode='width';zoom=1;refreshModeButtons();render()};$('f
 $('spread').onclick=()=>{spread=!spread;if(spread&&page>1&&page%2!==0)page-=1;$('spread').textContent=spread?'▤ 한 쪽':'▣ 두 쪽';refreshModeButtons();render()};
 
 
+// Enter focus mode only through explicit controls; restore via exit or deliberate tap.
+let focusReading=false;
+function setFocusReading(enabled){
+ if(focusReading===enabled)return;
+ focusReading=enabled;
+ document.querySelector('.layout').classList.toggle('focus-reading',enabled);
+ $('focusExit').hidden=!enabled;
+ $('focusMode').setAttribute('aria-pressed',String(enabled));
+ $('mFocusMode').setAttribute('aria-pressed',String(enabled));
+ closeMobileSettings();
+ if(pdf)requestAnimationFrame(()=>{positionEdgeButtons();render()});
+}
+$('focusMode').onclick=()=>setFocusReading(true);
+$('mFocusMode').onclick=()=>setFocusReading(true);
+$('focusExit').onclick=()=>setFocusReading(false);
+
 // Mobile settings: controls proxy to the existing reader buttons.
 const mobileSettings=$('mobileSettings'), mobileMore=$('mobileMore');
 function closeMobileSettings(){mobileSettings.hidden=true;mobileMore.setAttribute('aria-expanded','false')}
@@ -140,9 +156,23 @@ function refreshMobileLayout(){
  if(pdf)requestAnimationFrame(()=>render());
 }
 window.addEventListener('orientationchange',()=>setTimeout(refreshMobileLayout,120));
-document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='Escape'&&focusReading){setFocusReading(false);return}if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
 window.addEventListener('resize',()=>{positionEdgeButtons();if(pdf)requestAnimationFrame(()=>render())});
+// A brief stationary touch exits focus mode; scrolling, swiping and long press do not.
+let focusTap=null;
+$('viewer').addEventListener('pointerdown',e=>{
+ if(!focusReading||e.pointerType!=='touch'||!e.isPrimary||e.target.closest('button')){focusTap=null;return}
+ focusTap={id:e.pointerId,x:e.clientX,y:e.clientY,at:Date.now()};
+});
+$('viewer').addEventListener('pointerup',e=>{
+ if(!focusTap||e.pointerId!==focusTap.id)return;
+ const t=focusTap;focusTap=null;
+ if(!focusReading)return;
+ if(Date.now()-t.at<=300&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<=10)setFocusReading(false);
+});
+$('viewer').addEventListener('pointercancel',()=>{focusTap=null});
+
 // Pointer Events swipe navigation (touch screens); allow vertical scrolling.
 let swipeStart=null;
 const area=$('viewer');
