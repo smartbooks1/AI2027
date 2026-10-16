@@ -15,6 +15,6 @@
   "readerDefaults": {
     "fit": "auto",
     "twoPage": false,
-    "allowDownload": false
+    "allowDownload": true
   }
 }
