@@ -5,11 +5,11 @@
   "titleRules": [
     {
       "contains": "특별부록2",
-      "title": "특별부록 · 워크시트"
+      "title": "워크시트"
     },
     {
       "contains": "특별부록3",
-      "title": "특별부록 · 워드패밀리 연습"
+      "title": "워드패밀리 연습"
     }
   ],
   "readerDefaults": {
