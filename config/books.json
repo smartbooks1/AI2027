@@ -3,15 +3,15 @@
   "autoDiscover": false,
   "books": [
     {
-    "file": "./Sample1_머리말.pdf",
+    "file": "Sample1_머리말.pdf",
     "allowDownload": false
   },
   {
-    "file": "./Sample2_차례.pdf",
+    "file": "Sample2_차례.pdf",
     "allowDownload": false
   },
   {
-    "file": "./Sample3_진정한빅뱅의시작.pdf",
+    "file": "Sample3_진정한빅뱅의시작.pdf",
     "allowDownload": false
   }
   ],
