@@ -3,22 +3,30 @@
   "autoDiscover": false,
   "books": [
     {
-    "file": "조이스박의_오이스터_영어교육법_특별부록2_워크시트.pdf",
+    "file": "Sample1_머리말.pdf",
     "allowDownload": false
   },
   {
-    "file": "조이스박의_오이스터_영어교육법_특별부록3_워드패밀리연습.pdf",
+    "file": "Sample2_차례.pdf",
+    "allowDownload": false
+  },
+  {
+    "file": "Sample3_진정한빅뱅의시작.pdf",
     "allowDownload": false
   }
   ],
   "titleRules": [
     {
-      "contains": "특별부록2",
-      "title": "워크시트"
+      "contains": "Sample1_머리말",
+      "title": "머리말"
     },
     {
-      "contains": "특별부록3",
-      "title": "워드패밀리 연습"
+      "contains": "Sample2",
+      "title": "차례"
+    },
+    {
+      "contains": "Sample3_진정한빅뱅의시작",
+      "title": "Trend 1: 진정한 빅뱅의 시작"
     }
   ],
   "readerDefaults": {
