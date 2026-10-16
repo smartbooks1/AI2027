@@ -1,7 +1,16 @@
 {
   "siteTitle": "[AI 2027] 부록 챕터",
-  "autoDiscover": true,
-  "books": [],
+  "autoDiscover": false,
+  "books": [
+    {
+    "file": "조이스박의_오이스터_영어교육법_특별부록2_워크시트.pdf",
+    "allowDownload": true
+  },
+  {
+    "file": "조이스박의_오이스터_영어교육법_특별부록3_워드패밀리연습.pdf",
+    "allowDownload": false
+  }
+  ],
   "titleRules": [
     {
       "contains": "특별부록2",
@@ -15,6 +24,6 @@
   "readerDefaults": {
     "fit": "auto",
     "twoPage": false,
-    "allowDownload": true
+    "allowDownload": false
   }
 }
