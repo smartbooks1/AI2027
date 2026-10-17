@@ -68,7 +68,10 @@ async function loadBooks(){
   readerDefaults={fit:config.readerDefaults?.fit||'auto',twoPage:config.readerDefaults?.twoPage===true,allowDownload:config.readerDefaults?.allowDownload===true};
   fitMode=readerDefaults.fit==='width'?'width':'page';
   twoPage=readerDefaults.twoPage;
-  if(mobilePortrait()){fitMode='page';twoPage=false}
+  if(smallScreen()){
+   if(mobilePortrait()){fitMode='page';twoPage=false}
+   else fitMode='width';
+  }
 
   const siteTitle=typeof config.siteTitle==='string'&&config.siteTitle.trim()?config.siteTitle:'전자책 자료실';
   $('siteTitle').textContent=siteTitle;document.title=siteTitle;
@@ -116,6 +119,7 @@ function renderNativePages(){
  cancelSpreadRendering();const token=spreadRenderToken,pages=$('nativePages');pages.replaceChildren();
  pages.classList.toggle('two-page',twoPage);
  pages.classList.toggle('page-fitted',fitMode==='page'&&zoomLevel===100);
+ pages.classList.toggle('swipe-enabled',smallScreen()&&fitMode!==null&&zoomLevel===100);
  if(pdfDocument)renderPageView(pages,token);
 }
 async function renderPageView(container,token){
@@ -250,7 +254,7 @@ pageSurface.addEventListener('touchstart',event=>{
   const centerX=(event.touches[0].clientX+event.touches[1].clientX)/2,centerY=(event.touches[0].clientY+event.touches[1].clientY)/2;
   pinchState={distance:touchDistance(event.touches),startZoom:zoomLevel,targetZoom:zoomLevel,fit:fitMode,stage};
   if(stage&&rect){stage.style.transformOrigin=((centerX-rect.left)/rect.width*100)+'% '+((centerY-rect.top)/rect.height*100)+'%'}
- }else if(event.touches.length===1&&pageSurface.classList.contains('page-fitted')){
+ }else if(event.touches.length===1&&pageSurface.classList.contains('swipe-enabled')){
   const touch=event.touches[0];swipeStart={x:touch.clientX,y:touch.clientY,time:performance.now()};
  }
 },{passive:false});
@@ -276,7 +280,12 @@ pageSurface.addEventListener('touchend',event=>{
  }
 },{passive:true});
 pageSurface.addEventListener('touchcancel',()=>{if(pinchState?.stage){pinchState.stage.style.transform='';pinchState.stage.style.transformOrigin=''}pinchState=null;swipeStart=null;updatePageControls()},{passive:true});
-window.addEventListener('orientationchange',()=>setTimeout(()=>{syncMobileViewportHeight();setMobileToolsOpen(false);if(mobilePortrait()){twoPage=false;fitMode='page';zoomLevel=100}updatePageControls();renderNativePages()},120));
+window.addEventListener('orientationchange',()=>setTimeout(()=>{
+ syncMobileViewportHeight();setMobileToolsOpen(false);
+ if(mobilePortrait()){twoPage=false;fitMode='page';zoomLevel=100}
+ else if(smallScreen()){fitMode='width';zoomLevel=100}
+ updatePageControls();renderNativePages();
+},120));
 document.addEventListener('contextmenu',event=>event.preventDefault());
 window.addEventListener('resize',()=>{syncMobileViewportHeight();syncMenu();scheduleSpreadRender()});
 syncMobileViewportHeight();syncMenu();loadBooks();
