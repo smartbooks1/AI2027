@@ -20,7 +20,7 @@
 .native-page-frame{display:block;flex:1;min-width:0;height:100%;border:0;background:#252525}
 .native-pages.pdfjs-spread{display:block;overflow:auto;overscroll-behavior:contain}
 .spread-stage{display:flex;align-items:flex-start;justify-content:center;gap:3px;width:max-content;min-width:100%;min-height:100%;padding:var(--spread-padding,24px);box-sizing:border-box}
-.spread-page,.spread-blank{display:block;flex:none;background:#f8f9f7;box-shadow:0 7px 24px #0009}
+.spread-page,.spread-blank{display:block;flex:none;background:#f8f9f7;box-shadow:0 7px 24px #0009}.spread-page{image-rendering:auto}
 .spread-left{border-radius:3px 0 0 3px;box-shadow:inset -10px 0 18px #26394b12,0 7px 24px #0009}
 .spread-right{border-radius:0 3px 3px 0;box-shadow:inset 10px 0 18px #26394b12,0 7px 24px #0009}
 .native-edge{position:absolute;z-index:3;top:calc(50% + 30px);display:grid;place-items:center;width:46px;height:68px;padding:0;transform:translateY(-50%);border:1px solid #ffffff2b;border-radius:12px;background:#111827b3;color:#fff;line-height:1;box-shadow:0 6px 20px #0005;opacity:.2;transition:opacity .18s ease,background .18s ease,transform .18s ease,box-shadow .18s ease}

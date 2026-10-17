@@ -8,6 +8,10 @@ const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
 let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,pdfDocument=null,openToken=0,zoomLevel=100,twoPage=false,spreadRenderToken=0,spreadRenderTasks=[];
+// Canvas spreads need supersampling to retain the sharp text of the native PDF viewer.
+const MIN_SPREAD_RENDER_RATIO=2;
+const MAX_SPREAD_RENDER_RATIO=3;
+const MAX_SPREAD_PAGE_PIXELS=12000000;
 const info=(text,error=false)=>{$('message').textContent=text;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
  const resp=await fetch('https://api.github.com/repos/'+ROOT+'/git/trees/main?recursive=1',{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
@@ -108,6 +112,10 @@ function nativePageUrl(pageNumber){
 function cancelSpreadRendering(){
  spreadRenderToken++;for(const task of spreadRenderTasks){try{task.cancel()}catch{}}spreadRenderTasks=[];
 }
+function spreadRenderRatio(width,height){
+ const screenRatio=Math.max(MIN_SPREAD_RENDER_RATIO,Math.min(window.devicePixelRatio||1,MAX_SPREAD_RENDER_RATIO));
+ return Math.min(screenRatio,Math.sqrt(MAX_SPREAD_PAGE_PIXELS/(width*height)));
+}
 function renderNativePages(){
  cancelSpreadRendering();const token=spreadRenderToken,pages=$('nativePages');pages.replaceChildren();
  pages.classList.toggle('two-page',twoPage);pages.classList.toggle('pdfjs-spread',twoPage);
@@ -126,17 +134,18 @@ async function renderBookSpread(container,token){
   const padding=Math.min(68,Math.max(24,container.clientWidth*.045)),gap=3;
   const widthScale=Math.max(.1,(container.clientWidth-padding*2-gap)/(maxWidth*2));
   const heightScale=Math.max(.1,(container.clientHeight-padding*2)/maxHeight);
-  const scale=Math.min(widthScale,heightScale)*(zoomLevel/100),dpr=Math.min(window.devicePixelRatio||1,2);
-  const reference=real[0].getViewport({scale});
+  const scale=Math.min(widthScale,heightScale)*(zoomLevel/100);
+  const reference=real[0].getViewport({scale}),referenceWidth=Math.max(1,Math.round(reference.width)),referenceHeight=Math.max(1,Math.round(reference.height));
   const stage=document.createElement('div');stage.className='spread-stage';stage.style.setProperty('--spread-padding',padding+'px');
   const renderItems=[];
   loaded.forEach((page,index)=>{
-   if(!page){const blank=document.createElement('div');blank.className='spread-blank '+(index===0?'spread-left':'spread-right');blank.setAttribute('aria-label','빈 페이지');blank.style.width=reference.width+'px';blank.style.height=reference.height+'px';stage.appendChild(blank);return}
-   const display=page.getViewport({scale}),render=page.getViewport({scale:scale*dpr});
-   const canvas=document.createElement('canvas');canvas.className='spread-page '+(index===0?'spread-left':'spread-right');canvas.width=Math.ceil(render.width);canvas.height=Math.ceil(render.height);canvas.style.width=display.width+'px';canvas.style.height=display.height+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,render});
+   if(!page){const blank=document.createElement('div');blank.className='spread-blank '+(index===0?'spread-left':'spread-right');blank.setAttribute('aria-label','빈 페이지');blank.style.width=referenceWidth+'px';blank.style.height=referenceHeight+'px';stage.appendChild(blank);return}
+   const display=page.getViewport({scale}),displayWidth=Math.max(1,Math.round(display.width)),displayHeight=Math.max(1,Math.round(display.height));
+   const outputScale=spreadRenderRatio(displayWidth,displayHeight);
+   const canvas=document.createElement('canvas');canvas.className='spread-page '+(index===0?'spread-left':'spread-right');canvas.width=Math.ceil(displayWidth*outputScale);canvas.height=Math.ceil(displayHeight*outputScale);canvas.style.width=displayWidth+'px';canvas.style.height=displayHeight+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,display,outputScale});
   });
   container.appendChild(stage);
-  spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d'),viewport:item.render}));
+  spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d',{alpha:false}),viewport:item.display,transform:[item.outputScale,0,0,item.outputScale,0,0],background:'#fff'}));
   await Promise.all(spreadRenderTasks.map(task=>task.promise));
   if(token===spreadRenderToken)spreadRenderTasks=[];
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
