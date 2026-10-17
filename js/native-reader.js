@@ -92,8 +92,11 @@ function updatePageControls(){
  $('nextPage').disabled=atLast;$('lastPage').disabled=atLast;$('edgeNext').disabled=atLast;
  $('mobileFirstPage').disabled=atFirst;$('mobileLastPage').disabled=atLast;
  $('readerZoomLabel').textContent=zoomLevel+'%';$('zoomOut').disabled=zoomLevel<=50;$('zoomIn').disabled=zoomLevel>=200;
+ $('mobileZoomLabel').textContent=zoomLevel+'%';$('mobileZoomOut').disabled=zoomLevel<=50;$('mobileZoomIn').disabled=zoomLevel>=200;
  $('fitWidth').setAttribute('aria-pressed',String(fitMode==='width'));$('fitPage').setAttribute('aria-pressed',String(fitMode==='page'));
+ $('mobileFitWidth').setAttribute('aria-pressed',String(fitMode==='width'));$('mobileFitPage').setAttribute('aria-pressed',String(fitMode==='page'));
  $('singlePageMode').setAttribute('aria-pressed',String(!twoPage));$('twoPageMode').setAttribute('aria-pressed',String(twoPage));
+ $('mobileSinglePageMode').setAttribute('aria-pressed',String(!twoPage));$('mobileTwoPageMode').setAttribute('aria-pressed',String(twoPage));
 }
 function lastPageStart(){
  if(!twoPage||totalPages<=1)return Math.max(1,totalPages);
@@ -221,6 +224,12 @@ $('fitWidth').onclick=()=>{setFitMode('width');if(smallScreen())setMobileToolsOp
 $('fitPage').onclick=()=>{setFitMode('page');if(smallScreen())setMobileToolsOpen(false)};
 $('singlePageMode').onclick=()=>{setTwoPage(false);if(smallScreen())setMobileToolsOpen(false)};
 $('twoPageMode').onclick=()=>{setTwoPage(true);if(smallScreen())setMobileToolsOpen(false)};
+$('mobileZoomOut').onclick=()=>setZoom(zoomLevel-10);
+$('mobileZoomIn').onclick=()=>setZoom(zoomLevel+10);
+$('mobileFitWidth').onclick=()=>setFitMode('width');
+$('mobileFitPage').onclick=()=>setFitMode('page');
+$('mobileSinglePageMode').onclick=()=>setTwoPage(false);
+$('mobileTwoPageMode').onclick=()=>setTwoPage(true);
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
 const mobilePortrait=()=>smallScreen()&&window.matchMedia('(orientation:portrait)').matches;
 function syncMobileViewportHeight(){if(smallScreen())document.documentElement.style.setProperty('--reader-viewport-height',window.innerHeight+'px');else document.documentElement.style.removeProperty('--reader-viewport-height')}
@@ -264,7 +273,7 @@ pageSurface.addEventListener('touchmove',event=>{
   event.preventDefault();const ratio=touchDistance(event.touches)/Math.max(1,pinchState.distance);
   pinchState.targetZoom=Math.max(50,Math.min(200,pinchState.startZoom*ratio));
   if(pinchState.stage)pinchState.stage.style.transform='scale('+(pinchState.targetZoom/pinchState.startZoom)+')';
-  $('readerZoomLabel').textContent=Math.round(pinchState.targetZoom)+'%';return;
+  const pinchLabel=Math.round(pinchState.targetZoom)+'%';$('readerZoomLabel').textContent=pinchLabel;$('mobileZoomLabel').textContent=pinchLabel;return;
  }
  if(swipeStart&&event.touches.length===1){const touch=event.touches[0],dx=touch.clientX-swipeStart.x,dy=touch.clientY-swipeStart.y;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>8)event.preventDefault()}
 },{passive:false});
