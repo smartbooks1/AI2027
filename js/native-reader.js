@@ -7,7 +7,7 @@ const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathnam
 const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
-let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,openToken=0;
+let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,openToken=0,zoomLevel=100,twoPage=false;
 const info=(text,error=false)=>{$('message').textContent=text;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
  const resp=await fetch('https://api.github.com/repos/'+ROOT+'/git/trees/main?recursive=1',{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
@@ -62,6 +62,7 @@ async function loadBooks(){
   const missing=check.filter(Boolean);
   if(missing.length)throw Error('지정한 PDF 파일을 찾지 못했습니다: '+missing.join(', ')+'. books.json의 file 경로와 실제 업로드 파일명을 확인해 주세요.');
   readerDefaults={fit:config.readerDefaults?.fit||'auto',twoPage:config.readerDefaults?.twoPage===true,allowDownload:config.readerDefaults?.allowDownload===true};
+  twoPage=readerDefaults.twoPage;
 
   const siteTitle=typeof config.siteTitle==='string'&&config.siteTitle.trim()?config.siteTitle:'전자책 자료실';
   $('siteTitle').textContent=siteTitle;document.title=siteTitle;
@@ -72,31 +73,67 @@ async function loadBooks(){
 }
 
 function updatePageControls(){
- $('currentPage').textContent=String(currentPage);
+ const pageText=twoPage?(currentPage===1?'백면 · 1':(currentPage+(currentPage<totalPages?' · '+(currentPage+1):' · 백면'))):String(currentPage);
+ $('currentPage').textContent=pageText;
  $('totalPages').textContent=totalPages?String(totalPages):'-';
- const atFirst=currentPage<=1,atLast=!totalPages||currentPage>=totalPages;
+ const atFirst=currentPage<=1,atLast=!totalPages||currentPage>=lastPageStart();
  $('firstPage').disabled=atFirst;$('prevPage').disabled=atFirst;$('edgePrev').disabled=atFirst;
  $('nextPage').disabled=atLast;$('lastPage').disabled=atLast;$('edgeNext').disabled=atLast;
+ $('readerZoomLabel').textContent=zoomLevel+'%';$('zoomOut').disabled=zoomLevel<=50;$('zoomIn').disabled=zoomLevel>=200;
+ $('singlePageMode').setAttribute('aria-pressed',String(!twoPage));$('twoPageMode').setAttribute('aria-pressed',String(twoPage));
+}
+function lastPageStart(){
+ if(!twoPage||totalPages<=1)return Math.max(1,totalPages);
+ return totalPages%2===0?totalPages:totalPages-1;
+}
+function normalizePage(pageNumber){
+ const bounded=Math.max(1,Math.min(totalPages||1,pageNumber));
+ return twoPage&&bounded>1&&bounded%2!==0?bounded-1:bounded;
+}
+function visiblePages(){
+ if(!twoPage)return [currentPage];
+ if(currentPage===1)return [null,1];
+ return [currentPage,currentPage+1<=totalPages?currentPage+1:null];
 }
 function nativePageUrl(pageNumber){
- const view=readerDefaults.fit==='width'?'FitH':'Fit';
  const url=new URL(currentBookUrl);
  // A distinct document URL prevents Chrome from retaining the old embedded
  // PDF viewport when only the fragment's page number changes.
  url.searchParams.set('reader-page',String(pageNumber));
- url.hash='page='+pageNumber+'&view='+view+'&toolbar=0&navpanes=0';
+ url.searchParams.set('reader-zoom',String(zoomLevel));
+ url.searchParams.set('reader-view',twoPage?'two':'one');
+ url.hash='page='+pageNumber+'&zoom='+zoomLevel+'&toolbar=0&navpanes=0';
  return url.href;
 }
-function replaceNativeFrame(pageNumber){
- const frame=document.createElement('iframe');frame.id='nativePdf';
- frame.title=currentBookTitle+' PDF';frame.src=nativePageUrl(pageNumber);
- $('nativePdf').replaceWith(frame);
+function blankPage(){
+ const slot=document.createElement('div');slot.className='native-page-slot native-blank';
+ const sheet=document.createElement('div');sheet.className='blank-sheet';sheet.textContent='백면';slot.appendChild(sheet);return slot;
+}
+function renderNativePages(){
+ const pages=$('nativePages');pages.classList.toggle('two-page',twoPage);pages.replaceChildren();
+ for(const pageNumber of visiblePages()){
+  if(pageNumber===null){pages.appendChild(blankPage());continue}
+  const frame=document.createElement('iframe');frame.className='native-page-frame';
+  frame.title=currentBookTitle+' '+pageNumber+'쪽 PDF';frame.src=nativePageUrl(pageNumber);pages.appendChild(frame);
+ }
 }
 function goToPage(pageNumber){
  if(!totalPages)return;
- const next=Math.max(1,Math.min(totalPages,pageNumber));
+ const next=normalizePage(pageNumber);
  if(next===currentPage)return;
- currentPage=next;updatePageControls();replaceNativeFrame(currentPage);
+ currentPage=next;updatePageControls();renderNativePages();
+}
+function previousPage(){return twoPage?(currentPage<=2?1:currentPage-2):currentPage-1}
+function nextPage(){return twoPage?(currentPage===1?2:currentPage+2):currentPage+1}
+function setZoom(next){
+ if(!currentBookUrl)return;
+ const value=Math.max(50,Math.min(200,next));if(value===zoomLevel)return;
+ zoomLevel=value;updatePageControls();renderNativePages();
+}
+function setTwoPage(enabled){
+ if(!currentBookUrl)return;
+ if(twoPage===enabled)return;twoPage=enabled;currentPage=normalizePage(currentPage);
+ updatePageControls();renderNativePages();
 }
 async function openBook(index){
  const token=++openToken;
@@ -107,9 +144,9 @@ async function openBook(index){
  $('title').textContent=book.title;
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  $('sidebar').classList.remove('open');syncMenu();
- currentBookUrl=url.href;currentBookTitle=book.title;currentPage=1;totalPages=0;updatePageControls();
+ currentBookUrl=url.href;currentBookTitle=book.title;currentPage=1;totalPages=0;zoomLevel=100;updatePageControls();
  // The native toolbar is replaced by the simpler site-owned page bar.
- replaceNativeFrame(currentPage);
+ renderNativePages();
  info('페이지 정보를 불러오는 중입니다…');
  try{
   const loading=pdfjsLib.getDocument({url:url.href});pageInfoTask=loading;
@@ -124,24 +161,28 @@ async function openBook(index){
  }
 }
 $('firstPage').onclick=()=>goToPage(1);
-$('prevPage').onclick=()=>goToPage(currentPage-1);
-$('nextPage').onclick=()=>goToPage(currentPage+1);
-$('lastPage').onclick=()=>goToPage(totalPages);
-$('edgePrev').onclick=()=>goToPage(currentPage-1);
-$('edgeNext').onclick=()=>goToPage(currentPage+1);
+$('prevPage').onclick=()=>goToPage(previousPage());
+$('nextPage').onclick=()=>goToPage(nextPage());
+$('lastPage').onclick=()=>goToPage(lastPageStart());
+$('edgePrev').onclick=()=>goToPage(previousPage());
+$('edgeNext').onclick=()=>goToPage(nextPage());
+$('zoomOut').onclick=()=>setZoom(zoomLevel-10);
+$('zoomIn').onclick=()=>setZoom(zoomLevel+10);
+$('singlePageMode').onclick=()=>setTwoPage(false);
+$('twoPageMode').onclick=()=>setTwoPage(true);
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
 function syncMenu(){
  const expanded=smallScreen()?$('sidebar').classList.contains('open'):!document.querySelector('.layout').classList.contains('sidebar-collapsed');
  $('menu').textContent=expanded?'☰ 목차 접기':'☰ 목차 열기';$('menu').setAttribute('aria-expanded',String(expanded));
 }
 $('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu()};
-function focusReading(enabled){document.querySelector('.layout').classList.toggle('focus-reading',enabled);$('focusExit').hidden=!enabled}
-$('focusMode').onclick=()=>focusReading(true);$('focusExit').onclick=()=>focusReading(false);
+function focusReading(enabled){document.querySelector('.layout').classList.toggle('focus-reading',enabled);$('focusExit').hidden=!enabled;$('focusMode').setAttribute('aria-pressed',String(enabled));$('focusMode').setAttribute('aria-label',enabled?'집중 모드 종료':'집중 모드 시작')}
+$('focusMode').onclick=()=>focusReading(!document.querySelector('.layout').classList.contains('focus-reading'));$('focusExit').onclick=()=>focusReading(false);
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'){focusReading(false);return}
  if(event.target instanceof HTMLInputElement)return;
- if(event.key==='ArrowLeft')goToPage(currentPage-1);
- if(event.key==='ArrowRight')goToPage(currentPage+1);
+ if(event.key==='ArrowLeft')goToPage(previousPage());
+ if(event.key==='ArrowRight')goToPage(nextPage());
 });
 window.addEventListener('resize',syncMenu);
 syncMenu();loadBooks();
