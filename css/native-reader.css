@@ -21,7 +21,9 @@
 .reader-zoom-status{display:grid;place-items:center;min-width:54px;height:34px;color:#f6f8fb;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .focus-tool{grid-template-rows:17px 10px;width:auto!important;min-width:48px;padding:2px 7px 1px!important;gap:0!important}.reader-pagebar .focus-tool svg{width:17px;height:17px}.focus-tool span{font-size:10px;font-weight:700;line-height:1;white-space:nowrap;transform:translateY(-1px)}
 .bookmark-tool{display:flex!important;grid-auto-flow:column;align-items:center;gap:5px;width:auto!important;min-width:34px;padding:0 8px!important;white-space:nowrap}.bookmark-tool svg{width:17px!important;height:17px!important}.bookmark-tool span{font-size:10px;font-weight:700;line-height:1}.bookmark-controls button[hidden]{display:none!important}
-.mobile-header,.mobile-more,.mobile-page-jumps,.mobile-primary-tools{display:none}.reader-secondary-tools{display:contents}
+.mobile-header,.mobile-page-jumps,.mobile-primary-tools{display:none}
+#mobileMore{display:none}
+.reader-secondary-tools{display:contents}
 .native-pages{display:flex;flex:1;min-width:0;min-height:0;background:#252525}
 .native-pages.pdfjs-pages{display:block;overflow:auto;overscroll-behavior:none}.native-pages.page-fitted{overflow:hidden}
 .spread-stage{display:flex;align-items:flex-start;justify-content:center;gap:3px;width:max-content;min-width:100%;min-height:100%;padding:var(--spread-padding,24px);box-sizing:border-box}
