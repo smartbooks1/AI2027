@@ -68,11 +68,15 @@ async function loadBooks(){
   readerDefaults={fit:config.readerDefaults?.fit||'auto',twoPage:config.readerDefaults?.twoPage===true,allowDownload:config.readerDefaults?.allowDownload===true};
   fitMode=readerDefaults.fit==='width'?'width':'page';
   twoPage=readerDefaults.twoPage;
+  if(mobilePortrait()){fitMode='page';twoPage=false}
 
   const siteTitle=typeof config.siteTitle==='string'&&config.siteTitle.trim()?config.siteTitle:'전자책 자료실';
   $('siteTitle').textContent=siteTitle;document.title=siteTitle;
   if(!books.length){$('chapters').replaceChildren();info('표시할 PDF가 없습니다. config/books.json의 books, visible, autoDiscover 설정을 확인해 주세요.');return}
-  const nav=$('chapters');nav.replaceChildren();books.forEach((b,i)=>{const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn)});
+  const nav=$('chapters'),mobileSelect=$('mobileChapterSelect');nav.replaceChildren();mobileSelect.replaceChildren();
+  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='목차';mobileSelect.appendChild(placeholder);
+  books.forEach((b,i)=>{const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn);const option=document.createElement('option');option.value=String(i);option.textContent=b.title;mobileSelect.appendChild(option)});
+  mobileSelect.onchange=()=>{if(mobileSelect.value==='')return;const index=Number(mobileSelect.value);mobileSelect.value='';openBook(index)};
   openBook(0);
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
@@ -166,6 +170,7 @@ function setFitMode(mode){
 }
 function setTwoPage(enabled){
  if(!currentBookUrl)return;
+ if(enabled&&mobilePortrait())return;
  if(twoPage===enabled)return;twoPage=enabled;currentPage=normalizePage(currentPage);
  updatePageControls();renderNativePages();
 }
@@ -210,6 +215,7 @@ $('fitPage').onclick=()=>setFitMode('page');
 $('singlePageMode').onclick=()=>setTwoPage(false);
 $('twoPageMode').onclick=()=>setTwoPage(true);
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
+const mobilePortrait=()=>smallScreen()&&window.matchMedia('(orientation:portrait)').matches;
 function syncMenu(){
  const expanded=smallScreen()?$('sidebar').classList.contains('open'):!document.querySelector('.layout').classList.contains('sidebar-collapsed');
  $('menu').textContent=expanded?'☰ 목차 접기':'☰ 목차 열기';$('menu').setAttribute('aria-expanded',String(expanded));
@@ -217,14 +223,56 @@ function syncMenu(){
 let resizeTimer=null;
 function scheduleSpreadRender(){clearTimeout(resizeTimer);if(pdfDocument)resizeTimer=setTimeout(renderNativePages,120)}
 $('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu();scheduleSpreadRender()};
+function setMobileToolsOpen(open){$('readerPagebar').classList.toggle('more-open',open);$('mobileMore').setAttribute('aria-expanded',String(open))}
+$('mobileMore').onclick=event=>{event.stopPropagation();setMobileToolsOpen(!$('readerPagebar').classList.contains('more-open'))};
+document.addEventListener('pointerdown',event=>{if(smallScreen()&&!$('readerPagebar').contains(event.target))setMobileToolsOpen(false)});
 function focusReading(enabled){const button=$('focusMode'),label=enabled?'집중 해제':'집중';document.querySelector('.layout').classList.toggle('focus-reading',enabled);button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',enabled?'집중 모드 종료':'집중 모드 시작');button.title=label;button.querySelector('span').textContent=label;scheduleSpreadRender()}
 $('focusMode').onclick=()=>focusReading(!document.querySelector('.layout').classList.contains('focus-reading'));
 document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&$('readerPagebar').classList.contains('more-open')){setMobileToolsOpen(false);return}
  if(event.key==='Escape'){focusReading(false);return}
  if(event.target instanceof HTMLInputElement)return;
  if(event.key==='ArrowLeft')goToPage(previousPage());
  if(event.key==='ArrowRight')goToPage(nextPage());
 });
+const pageSurface=$('nativePages');
+let swipeStart=null,pinchState=null;
+const touchDistance=touches=>Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);
+pageSurface.addEventListener('touchstart',event=>{
+ if(!smallScreen())return;
+ if(event.touches.length===2){
+  event.preventDefault();swipeStart=null;
+  const stage=pageSurface.querySelector('.spread-stage'),rect=stage?.getBoundingClientRect();
+  const centerX=(event.touches[0].clientX+event.touches[1].clientX)/2,centerY=(event.touches[0].clientY+event.touches[1].clientY)/2;
+  pinchState={distance:touchDistance(event.touches),startZoom:zoomLevel,targetZoom:zoomLevel,fit:fitMode,stage};
+  if(stage&&rect){stage.style.transformOrigin=((centerX-rect.left)/rect.width*100)+'% '+((centerY-rect.top)/rect.height*100)+'%'}
+ }else if(event.touches.length===1&&pageSurface.classList.contains('page-fitted')){
+  const touch=event.touches[0];swipeStart={x:touch.clientX,y:touch.clientY,time:performance.now()};
+ }
+},{passive:false});
+pageSurface.addEventListener('touchmove',event=>{
+ if(!smallScreen())return;
+ if(pinchState&&event.touches.length===2){
+  event.preventDefault();const ratio=touchDistance(event.touches)/Math.max(1,pinchState.distance);
+  pinchState.targetZoom=Math.max(50,Math.min(200,pinchState.startZoom*ratio));
+  if(pinchState.stage)pinchState.stage.style.transform='scale('+(pinchState.targetZoom/pinchState.startZoom)+')';
+  $('readerZoomLabel').textContent=Math.round(pinchState.targetZoom)+'%';return;
+ }
+ if(swipeStart&&event.touches.length===1){const touch=event.touches[0],dx=touch.clientX-swipeStart.x,dy=touch.clientY-swipeStart.y;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>8)event.preventDefault()}
+},{passive:false});
+pageSurface.addEventListener('touchend',event=>{
+ if(!smallScreen())return;
+ if(pinchState&&event.touches.length<2){
+  const state=pinchState;pinchState=null;swipeStart=null;if(state.stage){state.stage.style.transform='';state.stage.style.transformOrigin=''}
+  zoomLevel=Math.max(50,Math.min(200,Math.round(state.targetZoom/5)*5));fitMode=state.fit;updatePageControls();renderNativePages();return;
+ }
+ if(!event.touches.length&&swipeStart){
+  const touch=event.changedTouches[0],dx=touch.clientX-swipeStart.x,dy=touch.clientY-swipeStart.y,elapsed=performance.now()-swipeStart.time,threshold=Math.max(42,pageSurface.clientWidth*.1);swipeStart=null;
+  if(elapsed<900&&Math.abs(dx)>=threshold&&Math.abs(dx)>Math.abs(dy)*1.2){setMobileToolsOpen(false);goToPage(dx<0?nextPage():previousPage())}
+ }
+},{passive:true});
+pageSurface.addEventListener('touchcancel',()=>{if(pinchState?.stage){pinchState.stage.style.transform='';pinchState.stage.style.transformOrigin=''}pinchState=null;swipeStart=null;updatePageControls()},{passive:true});
+window.addEventListener('orientationchange',()=>setTimeout(()=>{setMobileToolsOpen(false);if(mobilePortrait()){twoPage=false;fitMode='page';zoomLevel=100}updatePageControls();renderNativePages()},120));
 document.addEventListener('contextmenu',event=>event.preventDefault());
 window.addEventListener('resize',()=>{syncMenu();scheduleSpreadRender()});
 syncMenu();loadBooks();
