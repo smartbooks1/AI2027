@@ -1,12 +1,13 @@
-// Native browser PDF viewer; reader.js remains available as the previous renderer.
+// Native browser PDF rendering with site-owned page navigation.
+import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';
 const $=id=>document.getElementById(id);
-document.documentElement.classList.toggle('chromium-pdf',/(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent));
 const PAGE_OWNER=location.hostname.endsWith('.github.io')?location.hostname.slice(0,-'.github.io'.length):'smartbooks1';
 const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathname.split('/').filter(Boolean)[0]||PAGE_OWNER+'.github.io'):'AI2027';
 const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
-let books=[],readerDefaults={fit:'auto'};
+let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',pageInfoTask=null,openToken=0;
 const info=(text,error=false)=>{$('message').textContent=text;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
  const resp=await fetch('https://api.github.com/repos/'+ROOT+'/git/trees/main?recursive=1',{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
@@ -70,22 +71,54 @@ async function loadBooks(){
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 
-function openBook(index){
+function updatePageControls(){
+ $('currentPage').textContent=String(currentPage);
+ $('totalPages').textContent=totalPages?String(totalPages):'-';
+ const atFirst=currentPage<=1,atLast=!totalPages||currentPage>=totalPages;
+ $('firstPage').disabled=atFirst;$('prevPage').disabled=atFirst;$('edgePrev').disabled=atFirst;
+ $('nextPage').disabled=atLast;$('lastPage').disabled=atLast;$('edgeNext').disabled=atLast;
+}
+function nativePageUrl(pageNumber){
+ const view=readerDefaults.fit==='width'?'FitH':'Fit';
+ return currentBookUrl+'#page='+pageNumber+'&view='+view+'&toolbar=0&navpanes=0';
+}
+function goToPage(pageNumber){
+ if(!totalPages)return;
+ const next=Math.max(1,Math.min(totalPages,pageNumber));
+ if(next===currentPage)return;
+ currentPage=next;updatePageControls();$('nativePdf').src=nativePageUrl(currentPage);
+}
+async function openBook(index){
+ const token=++openToken;
+ if(pageInfoTask){pageInfoTask.destroy().catch(()=>{});pageInfoTask=null}
  const book=books[index];
  const url=new URL(link(book.file),location.href);
  if(url.origin!==location.origin){info('같은 사이트의 PDF만 열 수 있습니다.',true);return}
  $('title').textContent=book.title;
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  $('sidebar').classList.remove('open');syncMenu();
- $('openPdf').href=url.href;$('openPdf').hidden=false;
+ currentBookUrl=url.href;currentPage=1;totalPages=0;updatePageControls();
  const frame=document.createElement('iframe');frame.id='nativePdf';frame.title=book.title+' PDF';
- const view=readerDefaults.fit==='width'?'FitH':'Fit';
- // Chrome's PDF viewer honors navpanes=0 even when the user's saved
- // preference left the thumbnail pane open for a previous document.
- frame.src=url.href+'#view='+view+'&navpanes=0';
+ // The native toolbar is replaced by the simpler site-owned page bar.
+ frame.src=nativePageUrl(currentPage);
  $('nativePdf').replaceWith(frame);
- info('브라우저의 고화질 PDF 화면으로 표시합니다. 왼쪽 목차에서 다른 장을 선택할 수 있습니다.');
+ info('페이지 정보를 불러오는 중입니다…');
+ try{
+  const loading=pdfjsLib.getDocument({url:url.href});pageInfoTask=loading;
+  const documentRef=await loading.promise;
+  if(token!==openToken){await documentRef.destroy();return}
+  totalPages=documentRef.numPages;pageInfoTask=null;await documentRef.destroy();
+  updatePageControls();$('message').hidden=true;
+ }catch(error){
+  if(token===openToken){pageInfoTask=null;info('페이지 수를 확인하지 못했습니다: '+error.message,true)}
+ }
 }
+$('firstPage').onclick=()=>goToPage(1);
+$('prevPage').onclick=()=>goToPage(currentPage-1);
+$('nextPage').onclick=()=>goToPage(currentPage+1);
+$('lastPage').onclick=()=>goToPage(totalPages);
+$('edgePrev').onclick=()=>goToPage(currentPage-1);
+$('edgeNext').onclick=()=>goToPage(currentPage+1);
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
 function syncMenu(){
  const expanded=smallScreen()?$('sidebar').classList.contains('open'):!document.querySelector('.layout').classList.contains('sidebar-collapsed');
@@ -94,6 +127,11 @@ function syncMenu(){
 $('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu()};
 function focusReading(enabled){document.querySelector('.layout').classList.toggle('focus-reading',enabled);$('focusExit').hidden=!enabled}
 $('focusMode').onclick=()=>focusReading(true);$('focusExit').onclick=()=>focusReading(false);
-document.addEventListener('keydown',event=>{if(event.key==='Escape')focusReading(false)});
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'){focusReading(false);return}
+ if(event.target instanceof HTMLInputElement)return;
+ if(event.key==='ArrowLeft')goToPage(currentPage-1);
+ if(event.key==='ArrowRight')goToPage(currentPage+1);
+});
 window.addEventListener('resize',syncMenu);
 syncMenu();loadBooks();

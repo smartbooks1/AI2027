@@ -1,12 +1,22 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index,follow"><title>AI2027 전자책 자료실</title><link rel="stylesheet" href="./css/style.css?v=20261016toc2"><style>/* Hide the cover in mobile layouts, including touch-screen landscape. */@media (max-width:760px), (hover:none) and (pointer:coarse){.sidebar-cover{display:none!important}}</style><link rel="stylesheet" href="./css/native-reader.css?v=20261017navless1"></head><body><div class="layout"><aside class="sidebar" id="sidebar"><div class="brand"><img class="brand-logo" src="./smartbooks_logo.png" alt="스마트북스 로고"><div class="brand-meta"><div class="brand-kicker">DIGITAL READER</div><h1 id="siteTitle">AI2027 전자책 자료실</h1></div></div><img class="sidebar-cover" src="./AI2026_cover.jpg" alt="AI 2026 책 표지" style="display:block;width:50%;height:auto;margin:20px auto 0"><div class="sidebar-label"><span>목차</span><span class="sidebar-label-en">CONTENTS</span></div><nav id="chapters" class="chapters" aria-label="전자책 목차"></nav><p class="sidebar-note">목차에서 원하는 장을 선택해 읽어보세요.</p></aside><main class="main"><header class="toolbar">
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="index,follow"><title>AI2027 전자책 자료실</title><link rel="stylesheet" href="./css/style.css?v=20261016toc2"><style>/* Hide the cover in mobile layouts, including touch-screen landscape. */@media (max-width:760px), (hover:none) and (pointer:coarse){.sidebar-cover{display:none!important}}</style><link rel="stylesheet" href="./css/native-reader.css?v=20261017paging1"></head><body><div class="layout"><aside class="sidebar" id="sidebar"><div class="brand"><img class="brand-logo" src="./smartbooks_logo.png" alt="스마트북스 로고"><div class="brand-meta"><div class="brand-kicker">DIGITAL READER</div><h1 id="siteTitle">AI2027 전자책 자료실</h1></div></div><img class="sidebar-cover" src="./AI2026_cover.jpg" alt="AI 2026 책 표지" style="display:block;width:50%;height:auto;margin:20px auto 0"><div class="sidebar-label"><span>목차</span><span class="sidebar-label-en">CONTENTS</span></div><nav id="chapters" class="chapters" aria-label="전자책 목차"></nav><p class="sidebar-note">목차에서 원하는 장을 선택해 읽어보세요.</p></aside><main class="main"><header class="toolbar">
 <div class="toolbar-heading"><button id="menu" aria-label="목차 접기 또는 펼치기" aria-expanded="true">☰ 목차 접기</button><strong class="booktitle" id="title">AI2027</strong></div>
 <div class="toolbar-actions">
 <button id="focusMode" type="button">⛶ 집중 모드</button>
-<a class="download" id="openPdf" target="_blank" rel="noopener" hidden>PDF 새 탭에서 열기</a>
 </div></header>
 <section class="viewer native-viewer" id="viewer" aria-label="전자책 열람">
 <button id="focusExit" class="focus-exit" type="button" hidden>✕ 집중 모드 종료</button>
 <div id="message" class="message" role="status">전자책을 준비하고 있습니다…</div>
-<div class="native-pdf-shell"><iframe id="nativePdf" title="PDF 문서" hidden></iframe></div>
+<div class="native-pdf-shell">
+<div class="reader-pagebar" role="group" aria-label="페이지 이동">
+<button id="firstPage" type="button" aria-label="첫 페이지로 이동" title="첫 페이지">&lt;&lt;</button>
+<button id="prevPage" type="button" aria-label="이전 페이지" title="이전 페이지">&lt;</button>
+<span class="reader-page-status"><span id="currentPage">1</span> / <span id="totalPages">-</span></span>
+<button id="nextPage" type="button" aria-label="다음 페이지" title="다음 페이지">&gt;</button>
+<button id="lastPage" type="button" aria-label="마지막 페이지로 이동" title="마지막 페이지">&gt;&gt;</button>
+</div>
+<iframe id="nativePdf" title="PDF 문서" hidden></iframe>
+<button id="edgePrev" class="native-edge native-edge-prev" type="button" aria-label="이전 페이지" title="이전 페이지">&lt;</button>
+<button id="edgeNext" class="native-edge native-edge-next" type="button" aria-label="다음 페이지" title="다음 페이지">&gt;</button>
+</div>
 </section></main></div>
-<script type="module" src="./js/native-reader.js?v=20261017navless1"></script></body></html>
+<script type="module" src="./js/native-reader.js?v=20261017paging1"></script></body></html>
