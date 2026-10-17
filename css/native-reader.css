@@ -77,8 +77,8 @@
 @media (orientation:landscape) and (max-width:760px),(orientation:landscape) and (max-width:1000px) and (pointer:coarse){
  .toolbar{height:42px;min-height:42px;padding:4px 10px}
  .mobile-logo{width:66px;max-height:21px}
- .mobile-toc{min-width:88px;height:30px}.toolbar .mobile-toc-trigger{height:30px;min-height:30px;padding:0 8px!important}.mobile-toc-menu{max-height:min(68dvh,360px)}.mobile-toc-list{max-height:calc(min(68dvh,360px) - 43px)}
- .reader-pagebar{position:fixed;top:0;left:50%;z-index:20;width:auto;height:42px;padding:0;gap:5px;transform:translateX(-50%);border:0;background:transparent;box-shadow:none}
+ .mobile-toc{min-width:88px;height:30px}.toolbar .mobile-toc-trigger{height:30px;min-height:30px;padding:0 8px!important}.mobile-toc-menu{top:calc(100% + 13px);max-height:min(68dvh,360px)}.mobile-toc-list{max-height:calc(min(68dvh,360px) - 43px)}
+ .reader-pagebar{position:fixed;top:0;left:50%;z-index:40;width:auto;height:42px;padding:0;gap:5px;transform:translateX(-50%);border:0;background:transparent;box-shadow:none}
  .reader-page-controls{height:32px;padding:2px;gap:1px;border:1px solid #ffffff1c;border-radius:10px;background:#1118274d;box-shadow:inset 0 1px #ffffff0d,0 4px 12px #0003}
  .reader-page-controls #firstPage,.reader-page-controls #prevPage,.reader-page-controls #nextPage,.reader-page-controls #lastPage{display:grid;width:27px;height:28px}
  .reader-page-controls button svg{width:18px;height:18px}
