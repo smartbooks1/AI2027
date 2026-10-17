@@ -1,5 +1,6 @@
 // Native browser PDF viewer; reader.js remains available as the previous renderer.
 const $=id=>document.getElementById(id);
+document.documentElement.classList.toggle('chromium-pdf',/(?:Chrome|Chromium|Edg)\//.test(navigator.userAgent));
 const PAGE_OWNER=location.hostname.endsWith('.github.io')?location.hostname.slice(0,-'.github.io'.length):'smartbooks1';
 const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathname.split('/').filter(Boolean)[0]||PAGE_OWNER+'.github.io'):'AI2027';
 const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
@@ -72,20 +73,23 @@ async function loadBooks(){
 function openBook(index){
  const book=books[index];
  const url=new URL(link(book.file),location.href);
- if(url.origin!==location.origin){info('PDF ??? ??? ???.',true);return}
+ if(url.origin!==location.origin){info('같은 사이트의 PDF만 열 수 있습니다.',true);return}
  $('title').textContent=book.title;
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  $('sidebar').classList.remove('open');syncMenu();
  $('openPdf').href=url.href;$('openPdf').hidden=false;
  const frame=document.createElement('iframe');frame.id='nativePdf';frame.title=book.title+' PDF';
- frame.src=url.href+(readerDefaults.fit==='width'?'#view=FitH':'#view=Fit');
+ const view=readerDefaults.fit==='width'?'FitH':'Fit';
+ // Chrome's PDF viewer honors navpanes=0 even when the user's saved
+ // preference left the thumbnail pane open for a previous document.
+ frame.src=url.href+'#view='+view+'&navpanes=0';
  $('nativePdf').replaceWith(frame);
- info('??? ????????? PDF ?? ??? ?????. ???? ??? ? ??? ?? ???.');
+ info('브라우저의 고화질 PDF 화면으로 표시합니다. 왼쪽 목차에서 다른 장을 선택할 수 있습니다.');
 }
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
 function syncMenu(){
  const expanded=smallScreen()?$('sidebar').classList.contains('open'):!document.querySelector('.layout').classList.contains('sidebar-collapsed');
- $('menu').textContent=expanded?'? ?? ??':'? ?? ??';$('menu').setAttribute('aria-expanded',String(expanded));
+ $('menu').textContent=expanded?'☰ 목차 접기':'☰ 목차 열기';$('menu').setAttribute('aria-expanded',String(expanded));
 }
 $('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu()};
 function focusReading(enabled){document.querySelector('.layout').classList.toggle('focus-reading',enabled);$('focusExit').hidden=!enabled}
