@@ -78,8 +78,7 @@ async function loadBooks(){
 }
 
 function updatePageControls(){
- const pageText=twoPage&&currentPage>1&&currentPage<totalPages?currentPage+'–'+(currentPage+1):String(currentPage);
- $('currentPage').textContent=pageText;
+ $('currentPage').value=String(currentPage);$('currentPage').max=String(Math.max(1,totalPages));$('currentPage').disabled=!totalPages;
  $('totalPages').textContent=totalPages?String(totalPages):'-';
  const atFirst=currentPage<=1,atLast=!totalPages||currentPage>=lastPageStart();
  $('firstPage').disabled=atFirst;$('prevPage').disabled=atFirst;$('edgePrev').disabled=atFirst;
@@ -146,8 +145,13 @@ async function renderPageView(container,token){
 function goToPage(pageNumber){
  if(!totalPages)return;
  const next=normalizePage(pageNumber);
- if(next===currentPage)return;
+ if(next===currentPage){updatePageControls();return}
  currentPage=next;updatePageControls();renderNativePages();
+}
+function submitPageInput(){
+ const input=$('currentPage'),value=input.value.trim(),requested=Number(value);
+ if(!value||!Number.isInteger(requested)){updatePageControls();return}
+ goToPage(requested);
 }
 function previousPage(){return twoPage?(currentPage<=2?1:currentPage-2):currentPage-1}
 function nextPage(){return twoPage?(currentPage===1?2:currentPage+2):currentPage+1}
@@ -196,6 +200,9 @@ $('nextPage').onclick=()=>goToPage(nextPage());
 $('lastPage').onclick=()=>goToPage(lastPageStart());
 $('edgePrev').onclick=()=>goToPage(previousPage());
 $('edgeNext').onclick=()=>goToPage(nextPage());
+$('currentPage').addEventListener('change',submitPageInput);
+$('currentPage').addEventListener('focus',event=>event.currentTarget.select());
+$('currentPage').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.stopPropagation();submitPageInput();event.currentTarget.blur()}else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();updatePageControls();event.currentTarget.blur()}});
 $('zoomOut').onclick=()=>setZoom(zoomLevel-10);
 $('zoomIn').onclick=()=>setZoom(zoomLevel+10);
 $('fitWidth').onclick=()=>setFitMode('width');
