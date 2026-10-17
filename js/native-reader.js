@@ -190,7 +190,6 @@ async function openBook(index){
  const book=books[index];
  const url=new URL(link(book.file),location.href);
  if(url.origin!==location.origin){info('같은 사이트의 PDF만 열 수 있습니다.',true);return}
- $('title').textContent=book.title;
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  $('sidebar').classList.remove('open');syncMenu();
  currentBookUrl=url.href;currentBookTitle=book.title;currentPage=1;totalPages=0;zoomLevel=100;updatePageControls();
