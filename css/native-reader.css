@@ -1,0 +1,14 @@
+/* Preserve the library shell; the browser owns PDF controls and scrolling. */
+.layout{height:100dvh;min-height:0;overflow:hidden}
+.sidebar{overflow:auto}.main{height:100dvh;min-height:0}
+.native-viewer{display:flex;flex-direction:column;padding:0;overflow:hidden;min-height:0}
+.native-viewer .message{flex:none;margin:0;padding:8px 16px;font-size:12px}
+#nativePdf{display:block;width:100%;flex:1;min-height:0;border:0;background:#525659}
+#nativePdf[hidden]{display:none}
+.layout.focus-reading .native-viewer{min-height:0;padding:0}
+.layout.focus-reading .native-viewer .message{padding-right:160px}
+@media(max-width:760px),(max-width:1000px) and (pointer:coarse){
+ .layout{display:flex;flex-direction:column}.sidebar.open{max-height:35dvh;flex-shrink:0;overflow:auto}
+ .main{flex:1;height:auto;min-height:0}.native-viewer{padding:0}
+ .layout.focus-reading .main{height:100dvh}
+}
