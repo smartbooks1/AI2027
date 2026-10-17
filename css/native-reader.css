@@ -59,13 +59,16 @@
  .toolbar{height:42px;min-height:42px;padding:4px 10px}
  .mobile-logo{width:66px;max-height:21px}
  .mobile-toc{min-width:82px;height:30px;padding:0 8px!important}
- .reader-pagebar{position:fixed;top:0;left:50%;z-index:20;width:auto;height:42px;padding:0;transform:translateX(-50%);border:0;background:transparent;box-shadow:none}
+ .reader-pagebar{position:fixed;top:0;left:50%;z-index:20;width:auto;height:42px;padding:0;gap:5px;transform:translateX(-50%);border:0;background:transparent;box-shadow:none}
+ .reader-page-controls{height:32px;padding:2px;gap:1px;border:1px solid #ffffff1c;border-radius:10px;background:#1118274d;box-shadow:inset 0 1px #ffffff0d,0 4px 12px #0003}
+ .reader-page-controls #firstPage,.reader-page-controls #prevPage,.reader-page-controls #nextPage,.reader-page-controls #lastPage{display:grid;width:27px;height:28px}
+ .reader-page-controls button svg{width:18px;height:18px}
  .reader-page-status{min-width:62px;height:30px;padding:0 6px;background:#1b2028e8}
  .mobile-more{width:32px!important;height:32px!important}
  .reader-secondary-tools{top:calc(100% + 5px);right:0}
  .reader-secondary-tools .zoom-controls,.reader-secondary-tools .fit-controls,.reader-secondary-tools .view-controls{display:none}
 }
-@media (orientation:landscape) and (max-width:560px){
+@media (orientation:landscape) and (max-width:700px){
  .mobile-primary-tools .mobile-primary-zoom-controls{display:none}
  .reader-secondary-tools .zoom-controls{display:flex}
 }
