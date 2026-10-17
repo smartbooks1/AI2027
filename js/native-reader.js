@@ -7,7 +7,7 @@ const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathnam
 const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
-let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',pageInfoTask=null,openToken=0;
+let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,openToken=0;
 const info=(text,error=false)=>{$('message').textContent=text;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
  const resp=await fetch('https://api.github.com/repos/'+ROOT+'/git/trees/main?recursive=1',{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
@@ -80,13 +80,23 @@ function updatePageControls(){
 }
 function nativePageUrl(pageNumber){
  const view=readerDefaults.fit==='width'?'FitH':'Fit';
- return currentBookUrl+'#page='+pageNumber+'&view='+view+'&toolbar=0&navpanes=0';
+ const url=new URL(currentBookUrl);
+ // A distinct document URL prevents Chrome from retaining the old embedded
+ // PDF viewport when only the fragment's page number changes.
+ url.searchParams.set('reader-page',String(pageNumber));
+ url.hash='page='+pageNumber+'&view='+view+'&toolbar=0&navpanes=0';
+ return url.href;
+}
+function replaceNativeFrame(pageNumber){
+ const frame=document.createElement('iframe');frame.id='nativePdf';
+ frame.title=currentBookTitle+' PDF';frame.src=nativePageUrl(pageNumber);
+ $('nativePdf').replaceWith(frame);
 }
 function goToPage(pageNumber){
  if(!totalPages)return;
  const next=Math.max(1,Math.min(totalPages,pageNumber));
  if(next===currentPage)return;
- currentPage=next;updatePageControls();$('nativePdf').src=nativePageUrl(currentPage);
+ currentPage=next;updatePageControls();replaceNativeFrame(currentPage);
 }
 async function openBook(index){
  const token=++openToken;
@@ -97,17 +107,17 @@ async function openBook(index){
  $('title').textContent=book.title;
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  $('sidebar').classList.remove('open');syncMenu();
- currentBookUrl=url.href;currentPage=1;totalPages=0;updatePageControls();
- const frame=document.createElement('iframe');frame.id='nativePdf';frame.title=book.title+' PDF';
+ currentBookUrl=url.href;currentBookTitle=book.title;currentPage=1;totalPages=0;updatePageControls();
  // The native toolbar is replaced by the simpler site-owned page bar.
- frame.src=nativePageUrl(currentPage);
- $('nativePdf').replaceWith(frame);
+ replaceNativeFrame(currentPage);
  info('페이지 정보를 불러오는 중입니다…');
  try{
   const loading=pdfjsLib.getDocument({url:url.href});pageInfoTask=loading;
   const documentRef=await loading.promise;
   if(token!==openToken){await documentRef.destroy();return}
-  totalPages=documentRef.numPages;pageInfoTask=null;await documentRef.destroy();
+  const pageCount=documentRef.numPages;await documentRef.destroy();
+  if(token!==openToken)return;
+  totalPages=pageCount;pageInfoTask=null;
   updatePageControls();$('message').hidden=true;
  }catch(error){
   if(token===openToken){pageInfoTask=null;info('페이지 수를 확인하지 못했습니다: '+error.message,true)}
