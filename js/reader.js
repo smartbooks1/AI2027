@@ -40,16 +40,6 @@ function storePage(key,canvas,epoch){
  }
 }
 function pageKey(n,width,height,angle){return [n,width,height,angle].join(':')}
-// Supersample small text while keeping the CSS page size unchanged.
-function pageViewports(p,scale,dpr,angle){
- const display=p.getViewport({scale,rotation:(p.rotate+angle)%360});
- let ratio=dpr;
- if(Math.ceil(display.width*ratio)*Math.ceil(display.height*ratio)>MAX_PAGE_PIXELS){
-  ratio=Math.min(ratio,Math.sqrt(MAX_PAGE_PIXELS/(display.width*display.height)));
-  while(Math.ceil(display.width*ratio)*Math.ceil(display.height*ratio)>MAX_PAGE_PIXELS)ratio*=0.999;
- }
- return {display,render:p.getViewport({scale:scale*ratio,rotation:(p.rotate+angle)%360})};
-}
 function upcomingPages(start,total,paired){
  const next=paired?(start===1?2:start+2):start+1;
  return next>total?[]:paired?[next,next+1].filter(n=>n<=total):[next];
@@ -58,7 +48,7 @@ async function prefetchPage(n,scale,dpr,angle,documentRef,epoch,token){
  if(epoch!==cacheEpoch||token!==prefetchToken||documentRef!==pdf)return;
  const p=await documentRef.getPage(n);
  if(epoch!==cacheEpoch||token!==prefetchToken||documentRef!==pdf)return;
- const viewport=pageViewports(p,scale,dpr,angle).render;
+ const viewport=p.getViewport({scale:scale*dpr,rotation:(p.rotate+angle)%360});
  const w=Math.ceil(viewport.width),h=Math.ceil(viewport.height);
  const key=pageKey(n,w,h,angle);
  if(pageCache.has(key)||w*h>MAX_PAGE_PIXELS)return;
@@ -191,8 +181,7 @@ async function render(){
  const paired=effectiveSpread();
  const slots=!paired?[page]:page===1?[null,1]:[page,page+1<=pdf.numPages?page+1:null];
  const viewer=$('viewer');
- const dpr=Math.max(2,Math.min(devicePixelRatio||1,3));
- const signature=[documentRef,page,paired,zoom,rotation,fitMode,viewer.clientWidth,viewer.clientHeight,window.innerHeight,dpr].join('|');
+ const signature=[documentRef,page,paired,zoom,rotation,fitMode,viewer.clientWidth,viewer.clientHeight,window.innerHeight].join('|');
  if(renderedSignature===signature)return;
  clearTimeout(prefetchTimer);prefetchToken++;
  info('페이지를 표시하는 중입니다…');$('sheets').replaceChildren();
@@ -200,7 +189,7 @@ async function render(){
   const loaded=await Promise.all(slots.map(n=>n===null?null:documentRef.getPage(n)));
   if(id!==task||documentRef!==pdf)return;
   const real=loaded.filter(Boolean);
-  const vw=Math.max(200,viewer.clientWidth-36);
+  const vw=Math.max(200,viewer.clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
   const base=real.map(p=>p.getViewport({scale:1,rotation:(p.rotate+rotation)%360}));
   const slotCount=slots.length,gap=paired?4:0;
   const widthScale=Math.min(...base.map(v=>(vw-gap*(slotCount-1))/(v.width*slotCount)));
@@ -209,11 +198,11 @@ async function render(){
   const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
   const canvases=loaded.map((p,i)=>{
    if(!p)return null;
-   const {display,render:view}=pageViewports(p,scale,dpr,rotation);
+   const view=p.getViewport({scale:scale*dpr,rotation:(p.rotate+rotation)%360});
    const w=Math.ceil(view.width),h=Math.ceil(view.height),key=pageKey(slots[i],w,h,rotation);
    const cached=cachedPage(key),canvas=document.createElement('canvas');
    canvas.className='sheet';canvas.width=w;canvas.height=h;
-   canvas.style.width=display.width+'px';canvas.style.height=display.height+'px';
+   canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';
    return {p,view,canvas,key,cached};
   });
   $('sheets').classList.toggle('spread-mode',paired);
