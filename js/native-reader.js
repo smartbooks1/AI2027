@@ -87,6 +87,7 @@ function updatePageControls(){
  const atFirst=currentPage<=1,atLast=!totalPages||currentPage>=lastPageStart();
  $('firstPage').disabled=atFirst;$('prevPage').disabled=atFirst;$('edgePrev').disabled=atFirst;
  $('nextPage').disabled=atLast;$('lastPage').disabled=atLast;$('edgeNext').disabled=atLast;
+ $('mobileFirstPage').disabled=atFirst;$('mobileLastPage').disabled=atLast;
  $('readerZoomLabel').textContent=zoomLevel+'%';$('zoomOut').disabled=zoomLevel<=50;$('zoomIn').disabled=zoomLevel>=200;
  $('fitWidth').setAttribute('aria-pressed',String(fitMode==='width'));$('fitPage').setAttribute('aria-pressed',String(fitMode==='page'));
  $('singlePageMode').setAttribute('aria-pressed',String(!twoPage));$('twoPageMode').setAttribute('aria-pressed',String(twoPage));
@@ -205,15 +206,17 @@ $('nextPage').onclick=()=>goToPage(nextPage());
 $('lastPage').onclick=()=>goToPage(lastPageStart());
 $('edgePrev').onclick=()=>goToPage(previousPage());
 $('edgeNext').onclick=()=>goToPage(nextPage());
+$('mobileFirstPage').onclick=()=>{goToPage(1);setMobileToolsOpen(false)};
+$('mobileLastPage').onclick=()=>{goToPage(lastPageStart());setMobileToolsOpen(false)};
 $('currentPage').addEventListener('change',submitPageInput);
 $('currentPage').addEventListener('focus',event=>event.currentTarget.select());
 $('currentPage').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.stopPropagation();submitPageInput();event.currentTarget.blur()}else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();updatePageControls();event.currentTarget.blur()}});
 $('zoomOut').onclick=()=>setZoom(zoomLevel-10);
 $('zoomIn').onclick=()=>setZoom(zoomLevel+10);
-$('fitWidth').onclick=()=>setFitMode('width');
-$('fitPage').onclick=()=>setFitMode('page');
-$('singlePageMode').onclick=()=>setTwoPage(false);
-$('twoPageMode').onclick=()=>setTwoPage(true);
+$('fitWidth').onclick=()=>{setFitMode('width');if(smallScreen())setMobileToolsOpen(false)};
+$('fitPage').onclick=()=>{setFitMode('page');if(smallScreen())setMobileToolsOpen(false)};
+$('singlePageMode').onclick=()=>{setTwoPage(false);if(smallScreen())setMobileToolsOpen(false)};
+$('twoPageMode').onclick=()=>{setTwoPage(true);if(smallScreen())setMobileToolsOpen(false)};
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
 const mobilePortrait=()=>smallScreen()&&window.matchMedia('(orientation:portrait)').matches;
 function syncMenu(){
@@ -227,7 +230,7 @@ function setMobileToolsOpen(open){$('readerPagebar').classList.toggle('more-open
 $('mobileMore').onclick=event=>{event.stopPropagation();setMobileToolsOpen(!$('readerPagebar').classList.contains('more-open'))};
 document.addEventListener('pointerdown',event=>{if(smallScreen()&&!$('readerPagebar').contains(event.target))setMobileToolsOpen(false)});
 function focusReading(enabled){const button=$('focusMode'),label=enabled?'집중 해제':'집중';document.querySelector('.layout').classList.toggle('focus-reading',enabled);button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',enabled?'집중 모드 종료':'집중 모드 시작');button.title=label;button.querySelector('span').textContent=label;scheduleSpreadRender()}
-$('focusMode').onclick=()=>focusReading(!document.querySelector('.layout').classList.contains('focus-reading'));
+$('focusMode').onclick=()=>{focusReading(!document.querySelector('.layout').classList.contains('focus-reading'));if(smallScreen())setMobileToolsOpen(false)};
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'&&$('readerPagebar').classList.contains('more-open')){setMobileToolsOpen(false);return}
  if(event.key==='Escape'){focusReading(false);return}
