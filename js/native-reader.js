@@ -225,5 +225,6 @@ document.addEventListener('keydown',event=>{
  if(event.key==='ArrowLeft')goToPage(previousPage());
  if(event.key==='ArrowRight')goToPage(nextPage());
 });
+document.addEventListener('contextmenu',event=>event.preventDefault());
 window.addEventListener('resize',()=>{syncMenu();scheduleSpreadRender()});
 syncMenu();loadBooks();
