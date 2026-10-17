@@ -101,18 +101,6 @@ function visiblePages(){
  if(currentPage===1)return [null,1];
  return [currentPage,currentPage+1<=totalPages?currentPage+1:null];
 }
-function nativePageUrl(pageNumber){
- const url=new URL(currentBookUrl);
- // A distinct document URL prevents Chrome from retaining the old embedded
- // PDF viewport when only the fragment's page number changes.
- url.searchParams.set('reader-page',String(pageNumber));
- url.searchParams.set('reader-zoom',String(zoomLevel));
- url.searchParams.set('reader-fit',fitMode||'manual');
- url.searchParams.set('reader-view',twoPage?'two':'one');
- const fitView=fitMode==='width'?'FitH':fitMode==='page'?'Fit':null;
- url.hash='page='+pageNumber+(fitView?'&view='+fitView:'&zoom='+zoomLevel)+'&toolbar=0&navpanes=0';
- return url.href;
-}
 function cancelSpreadRendering(){
  spreadRenderToken++;for(const task of spreadRenderTasks){try{task.cancel()}catch{}}spreadRenderTasks=[];
 }
@@ -122,21 +110,20 @@ function spreadRenderRatio(width,height){
 }
 function renderNativePages(){
  cancelSpreadRendering();const token=spreadRenderToken,pages=$('nativePages');pages.replaceChildren();
- pages.classList.toggle('two-page',twoPage);pages.classList.toggle('pdfjs-spread',twoPage);
- if(twoPage){if(pdfDocument)renderBookSpread(pages,token);return}
- const frame=document.createElement('iframe');frame.className='native-page-frame';
- frame.title=currentBookTitle+' '+currentPage+'쪽 PDF';frame.src=nativePageUrl(currentPage);pages.appendChild(frame);
+ pages.classList.toggle('two-page',twoPage);
+ pages.classList.toggle('page-fitted',fitMode==='page'&&zoomLevel===100);
+ if(pdfDocument)renderPageView(pages,token);
 }
-async function renderBookSpread(container,token){
+async function renderPageView(container,token){
  const documentRef=pdfDocument,slots=visiblePages();
  try{
   await new Promise(resolve=>requestAnimationFrame(resolve));
   const loaded=await Promise.all(slots.map(pageNumber=>pageNumber===null?null:documentRef.getPage(pageNumber)));
-  if(token!==spreadRenderToken||documentRef!==pdfDocument||!twoPage)return;
+   if(token!==spreadRenderToken||documentRef!==pdfDocument)return;
   const real=loaded.filter(Boolean),base=real.map(page=>page.getViewport({scale:1}));
   const maxWidth=Math.max(...base.map(view=>view.width)),maxHeight=Math.max(...base.map(view=>view.height));
-  const padding=Math.min(68,Math.max(24,container.clientWidth*.045)),gap=3;
-  const widthScale=Math.max(.1,(container.clientWidth-padding*2-gap)/(maxWidth*2));
+   const padding=fitMode==='page'?10:Math.min(28,Math.max(12,container.clientWidth*.02)),gap=twoPage?3:0,slotCount=twoPage?2:1;
+   const widthScale=Math.max(.1,(container.clientWidth-padding*2-gap*(slotCount-1))/(maxWidth*slotCount));
   const heightScale=Math.max(.1,(container.clientHeight-padding*2)/maxHeight);
   const fitScale=fitMode==='width'?widthScale:Math.min(widthScale,heightScale);
   const scale=fitScale*(zoomLevel/100);
@@ -144,10 +131,11 @@ async function renderBookSpread(container,token){
   const stage=document.createElement('div');stage.className='spread-stage';stage.style.setProperty('--spread-padding',padding+'px');
   const renderItems=[];
   loaded.forEach((page,index)=>{
-   if(!page){const blank=document.createElement('div');blank.className='spread-blank '+(index===0?'spread-left':'spread-right');blank.setAttribute('aria-label','빈 페이지');blank.style.width=referenceWidth+'px';blank.style.height=referenceHeight+'px';stage.appendChild(blank);return}
+   const sideClass=twoPage?(index===0?'spread-left':'spread-right'):'spread-single';
+   if(!page){const blank=document.createElement('div');blank.className='spread-blank '+sideClass;blank.setAttribute('aria-label','빈 페이지');blank.style.width=referenceWidth+'px';blank.style.height=referenceHeight+'px';stage.appendChild(blank);return}
    const display=page.getViewport({scale}),displayWidth=Math.max(1,Math.round(display.width)),displayHeight=Math.max(1,Math.round(display.height));
    const outputScale=spreadRenderRatio(displayWidth,displayHeight);
-   const canvas=document.createElement('canvas');canvas.className='spread-page '+(index===0?'spread-left':'spread-right');canvas.width=Math.ceil(displayWidth*outputScale);canvas.height=Math.ceil(displayHeight*outputScale);canvas.style.width=displayWidth+'px';canvas.style.height=displayHeight+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,display,outputScale});
+   const canvas=document.createElement('canvas');canvas.className='spread-page '+sideClass;canvas.width=Math.ceil(displayWidth*outputScale);canvas.height=Math.ceil(displayHeight*outputScale);canvas.style.width=displayWidth+'px';canvas.style.height=displayHeight+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,display,outputScale});
   });
   container.appendChild(stage);
   spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d',{alpha:false}),viewport:item.display,transform:[item.outputScale,0,0,item.outputScale,0,0],background:'#fff'}));
@@ -220,10 +208,10 @@ function syncMenu(){
  $('menu').textContent=expanded?'☰ 목차 접기':'☰ 목차 열기';$('menu').setAttribute('aria-expanded',String(expanded));
 }
 let resizeTimer=null;
-function scheduleSpreadRender(){clearTimeout(resizeTimer);if(twoPage&&pdfDocument)resizeTimer=setTimeout(renderNativePages,120)}
+function scheduleSpreadRender(){clearTimeout(resizeTimer);if(pdfDocument)resizeTimer=setTimeout(renderNativePages,120)}
 $('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu();scheduleSpreadRender()};
-function focusReading(enabled){document.querySelector('.layout').classList.toggle('focus-reading',enabled);$('focusExit').hidden=!enabled;$('focusMode').setAttribute('aria-pressed',String(enabled));$('focusMode').setAttribute('aria-label',enabled?'집중 모드 종료':'집중 모드 시작');scheduleSpreadRender()}
-$('focusMode').onclick=()=>focusReading(!document.querySelector('.layout').classList.contains('focus-reading'));$('focusExit').onclick=()=>focusReading(false);
+function focusReading(enabled){const button=$('focusMode'),label=enabled?'집중 해제':'집중';document.querySelector('.layout').classList.toggle('focus-reading',enabled);button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',enabled?'집중 모드 종료':'집중 모드 시작');button.title=label;button.querySelector('span').textContent=label;scheduleSpreadRender()}
+$('focusMode').onclick=()=>focusReading(!document.querySelector('.layout').classList.contains('focus-reading'));
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'){focusReading(false);return}
  if(event.target instanceof HTMLInputElement)return;
