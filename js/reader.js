@@ -40,6 +40,26 @@ function storePage(key,canvas,epoch){
  }
 }
 function pageKey(n,width,height,angle){return [n,width,height,angle].join(':')}
+function screenPixelRatio(){return window.devicePixelRatio||1}
+// Use the screen density without forcing supersampling on standard displays.
+function pageViewports(p,scale,dpr,angle){
+ const display=p.getViewport({scale,rotation:(p.rotate+angle)%360});
+ let ratio=Math.min(dpr,Math.sqrt(MAX_PAGE_PIXELS/(display.width*display.height)));
+ while(Math.ceil(display.width*ratio)*Math.ceil(display.height*ratio)>MAX_PAGE_PIXELS)ratio*=0.999;
+ return {display,render:p.getViewport({scale:scale*ratio,rotation:(p.rotate+angle)%360})};
+}
+// Run pdfRenderDiagnostics() in the browser console on each device.
+window.pdfRenderDiagnostics=()=>({
+ dpr:screenPixelRatio(),page,fitMode,zoom,pixelBudget:MAX_PAGE_PIXELS,
+ canvases:[...document.querySelectorAll('canvas.sheet')].map(c=>{
+  const style=getComputedStyle(c),rect=c.getBoundingClientRect();
+  const width=parseFloat(style.width)-parseFloat(style.borderLeftWidth)-parseFloat(style.borderRightWidth);
+  const height=parseFloat(style.height)-parseFloat(style.borderTopWidth)-parseFloat(style.borderBottomWidth);
+  return {pixels:[c.width,c.height],cssSize:[width,height],bounds:[rect.width,rect.height],
+   renderedRatio:c.width/width,requiredRatio:screenPixelRatio(),
+   meetsScreenDensity:c.width>=Math.floor(width*screenPixelRatio())&&c.height>=Math.floor(height*screenPixelRatio())};
+ })
+});
 function upcomingPages(start,total,paired){
  const next=paired?(start===1?2:start+2):start+1;
  return next>total?[]:paired?[next,next+1].filter(n=>n<=total):[next];
@@ -48,7 +68,7 @@ async function prefetchPage(n,scale,dpr,angle,documentRef,epoch,token){
  if(epoch!==cacheEpoch||token!==prefetchToken||documentRef!==pdf)return;
  const p=await documentRef.getPage(n);
  if(epoch!==cacheEpoch||token!==prefetchToken||documentRef!==pdf)return;
- const viewport=p.getViewport({scale:scale*dpr,rotation:(p.rotate+angle)%360});
+ const viewport=pageViewports(p,scale,dpr,angle).render;
  const w=Math.ceil(viewport.width),h=Math.ceil(viewport.height);
  const key=pageKey(n,w,h,angle);
  if(pageCache.has(key)||w*h>MAX_PAGE_PIXELS)return;
@@ -181,7 +201,8 @@ async function render(){
  const paired=effectiveSpread();
  const slots=!paired?[page]:page===1?[null,1]:[page,page+1<=pdf.numPages?page+1:null];
  const viewer=$('viewer');
- const signature=[documentRef,page,paired,zoom,rotation,fitMode,viewer.clientWidth,viewer.clientHeight,window.innerHeight].join('|');
+ const dpr=screenPixelRatio();
+ const signature=[documentRef,page,paired,zoom,rotation,fitMode,viewer.clientWidth,viewer.clientHeight,window.innerHeight,dpr].join('|');
  if(renderedSignature===signature)return;
  clearTimeout(prefetchTimer);prefetchToken++;
  info('페이지를 표시하는 중입니다…');$('sheets').replaceChildren();
@@ -189,7 +210,7 @@ async function render(){
   const loaded=await Promise.all(slots.map(n=>n===null?null:documentRef.getPage(n)));
   if(id!==task||documentRef!==pdf)return;
   const real=loaded.filter(Boolean);
-  const vw=Math.max(200,viewer.clientWidth-36),dpr=Math.min(devicePixelRatio||1,2);
+  const vw=Math.max(200,viewer.clientWidth-36);
   const base=real.map(p=>p.getViewport({scale:1,rotation:(p.rotate+rotation)%360}));
   const slotCount=slots.length,gap=paired?4:0;
   const widthScale=Math.min(...base.map(v=>(vw-gap*(slotCount-1))/(v.width*slotCount)));
@@ -198,11 +219,11 @@ async function render(){
   const scale=(fitMode==='page'?Math.min(widthScale,heightScale):widthScale)*zoom;
   const canvases=loaded.map((p,i)=>{
    if(!p)return null;
-   const view=p.getViewport({scale:scale*dpr,rotation:(p.rotate+rotation)%360});
+   const {display,render:view}=pageViewports(p,scale,dpr,rotation);
    const w=Math.ceil(view.width),h=Math.ceil(view.height),key=pageKey(slots[i],w,h,rotation);
    const cached=cachedPage(key),canvas=document.createElement('canvas');
    canvas.className='sheet';canvas.width=w;canvas.height=h;
-   canvas.style.width=(view.width/dpr)+'px';canvas.style.height=(view.height/dpr)+'px';
+   canvas.style.width=display.width+'px';canvas.style.height=display.height+'px';
    return {p,view,canvas,key,cached};
   });
   $('sheets').classList.toggle('spread-mode',paired);
@@ -296,6 +317,17 @@ function refreshMobileLayout(){
 window.addEventListener('orientationchange',()=>setTimeout(refreshMobileLayout,120));
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='Escape'&&focusReading){setFocusReading(false);return}if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click()});
 document.addEventListener('contextmenu',e=>{if(e.target.closest('.viewer'))e.preventDefault()});
+let densityQuery;
+function watchScreenDensity(){
+ if(densityQuery)densityQuery.removeEventListener('change',onScreenDensityChange);
+ densityQuery=window.matchMedia(`(resolution: ${screenPixelRatio()}dppx)`);
+ densityQuery.addEventListener('change',onScreenDensityChange);
+}
+function onScreenDensityChange(){
+ watchScreenDensity();
+ if(pdf)requestAnimationFrame(()=>render());
+}
+watchScreenDensity();
 window.addEventListener('resize',()=>{positionEdgeButtons();if(pdf)requestAnimationFrame(()=>render())});
 // A brief stationary touch exits focus mode; scrolling, swiping and long press do not.
 let focusTap=null;
