@@ -7,7 +7,7 @@ const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathnam
 const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
-let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,openToken=0,zoomLevel=100,twoPage=false;
+let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,pdfDocument=null,openToken=0,zoomLevel=100,twoPage=false,spreadRenderToken=0,spreadRenderTasks=[];
 const info=(text,error=false)=>{$('message').textContent=text;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
  const resp=await fetch('https://api.github.com/repos/'+ROOT+'/git/trees/main?recursive=1',{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
@@ -73,7 +73,7 @@ async function loadBooks(){
 }
 
 function updatePageControls(){
- const pageText=twoPage?(currentPage===1?'백면 · 1':(currentPage+(currentPage<totalPages?' · '+(currentPage+1):' · 백면'))):String(currentPage);
+ const pageText=twoPage&&currentPage>1&&currentPage<totalPages?currentPage+'–'+(currentPage+1):String(currentPage);
  $('currentPage').textContent=pageText;
  $('totalPages').textContent=totalPages?String(totalPages):'-';
  const atFirst=currentPage<=1,atLast=!totalPages||currentPage>=lastPageStart();
@@ -105,17 +105,41 @@ function nativePageUrl(pageNumber){
  url.hash='page='+pageNumber+'&zoom='+zoomLevel+'&toolbar=0&navpanes=0';
  return url.href;
 }
-function blankPage(){
- const slot=document.createElement('div');slot.className='native-page-slot native-blank';
- const sheet=document.createElement('div');sheet.className='blank-sheet';sheet.textContent='백면';slot.appendChild(sheet);return slot;
+function cancelSpreadRendering(){
+ spreadRenderToken++;for(const task of spreadRenderTasks){try{task.cancel()}catch{}}spreadRenderTasks=[];
 }
 function renderNativePages(){
- const pages=$('nativePages');pages.classList.toggle('two-page',twoPage);pages.replaceChildren();
- for(const pageNumber of visiblePages()){
-  if(pageNumber===null){pages.appendChild(blankPage());continue}
-  const frame=document.createElement('iframe');frame.className='native-page-frame';
-  frame.title=currentBookTitle+' '+pageNumber+'쪽 PDF';frame.src=nativePageUrl(pageNumber);pages.appendChild(frame);
- }
+ cancelSpreadRendering();const token=spreadRenderToken,pages=$('nativePages');pages.replaceChildren();
+ pages.classList.toggle('two-page',twoPage);pages.classList.toggle('pdfjs-spread',twoPage);
+ if(twoPage){if(pdfDocument)renderBookSpread(pages,token);return}
+ const frame=document.createElement('iframe');frame.className='native-page-frame';
+ frame.title=currentBookTitle+' '+currentPage+'쪽 PDF';frame.src=nativePageUrl(currentPage);pages.appendChild(frame);
+}
+async function renderBookSpread(container,token){
+ const documentRef=pdfDocument,slots=visiblePages();
+ try{
+  await new Promise(resolve=>requestAnimationFrame(resolve));
+  const loaded=await Promise.all(slots.map(pageNumber=>pageNumber===null?null:documentRef.getPage(pageNumber)));
+  if(token!==spreadRenderToken||documentRef!==pdfDocument||!twoPage)return;
+  const real=loaded.filter(Boolean),base=real.map(page=>page.getViewport({scale:1}));
+  const maxWidth=Math.max(...base.map(view=>view.width)),maxHeight=Math.max(...base.map(view=>view.height));
+  const padding=Math.min(68,Math.max(24,container.clientWidth*.045)),gap=3;
+  const widthScale=Math.max(.1,(container.clientWidth-padding*2-gap)/(maxWidth*2));
+  const heightScale=Math.max(.1,(container.clientHeight-padding*2)/maxHeight);
+  const scale=Math.min(widthScale,heightScale)*(zoomLevel/100),dpr=Math.min(window.devicePixelRatio||1,2);
+  const reference=real[0].getViewport({scale});
+  const stage=document.createElement('div');stage.className='spread-stage';stage.style.setProperty('--spread-padding',padding+'px');
+  const renderItems=[];
+  loaded.forEach((page,index)=>{
+   if(!page){const blank=document.createElement('div');blank.className='spread-blank '+(index===0?'spread-left':'spread-right');blank.setAttribute('aria-label','빈 페이지');blank.style.width=reference.width+'px';blank.style.height=reference.height+'px';stage.appendChild(blank);return}
+   const display=page.getViewport({scale}),render=page.getViewport({scale:scale*dpr});
+   const canvas=document.createElement('canvas');canvas.className='spread-page '+(index===0?'spread-left':'spread-right');canvas.width=Math.ceil(render.width);canvas.height=Math.ceil(render.height);canvas.style.width=display.width+'px';canvas.style.height=display.height+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,render});
+  });
+  container.appendChild(stage);
+  spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d'),viewport:item.render}));
+  await Promise.all(spreadRenderTasks.map(task=>task.promise));
+  if(token===spreadRenderToken)spreadRenderTasks=[];
+ }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
 }
 function goToPage(pageNumber){
  if(!totalPages)return;
@@ -137,7 +161,9 @@ function setTwoPage(enabled){
 }
 async function openBook(index){
  const token=++openToken;
+ cancelSpreadRendering();
  if(pageInfoTask){pageInfoTask.destroy().catch(()=>{});pageInfoTask=null}
+ if(pdfDocument){pdfDocument.destroy().catch(()=>{});pdfDocument=null}
  const book=books[index];
  const url=new URL(link(book.file),location.href);
  if(url.origin!==location.origin){info('같은 사이트의 PDF만 열 수 있습니다.',true);return}
@@ -152,10 +178,8 @@ async function openBook(index){
   const loading=pdfjsLib.getDocument({url:url.href});pageInfoTask=loading;
   const documentRef=await loading.promise;
   if(token!==openToken){await documentRef.destroy();return}
-  const pageCount=documentRef.numPages;await documentRef.destroy();
-  if(token!==openToken)return;
-  totalPages=pageCount;pageInfoTask=null;
-  updatePageControls();$('message').hidden=true;
+  pdfDocument=documentRef;totalPages=documentRef.numPages;pageInfoTask=null;
+  updatePageControls();renderNativePages();$('message').hidden=true;
  }catch(error){
   if(token===openToken){pageInfoTask=null;info('페이지 수를 확인하지 못했습니다: '+error.message,true)}
  }
@@ -175,8 +199,10 @@ function syncMenu(){
  const expanded=smallScreen()?$('sidebar').classList.contains('open'):!document.querySelector('.layout').classList.contains('sidebar-collapsed');
  $('menu').textContent=expanded?'☰ 목차 접기':'☰ 목차 열기';$('menu').setAttribute('aria-expanded',String(expanded));
 }
-$('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu()};
-function focusReading(enabled){document.querySelector('.layout').classList.toggle('focus-reading',enabled);$('focusExit').hidden=!enabled;$('focusMode').setAttribute('aria-pressed',String(enabled));$('focusMode').setAttribute('aria-label',enabled?'집중 모드 종료':'집중 모드 시작')}
+let resizeTimer=null;
+function scheduleSpreadRender(){clearTimeout(resizeTimer);if(twoPage&&pdfDocument)resizeTimer=setTimeout(renderNativePages,120)}
+$('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu();scheduleSpreadRender()};
+function focusReading(enabled){document.querySelector('.layout').classList.toggle('focus-reading',enabled);$('focusExit').hidden=!enabled;$('focusMode').setAttribute('aria-pressed',String(enabled));$('focusMode').setAttribute('aria-label',enabled?'집중 모드 종료':'집중 모드 시작');scheduleSpreadRender()}
 $('focusMode').onclick=()=>focusReading(!document.querySelector('.layout').classList.contains('focus-reading'));$('focusExit').onclick=()=>focusReading(false);
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'){focusReading(false);return}
@@ -184,5 +210,5 @@ document.addEventListener('keydown',event=>{
  if(event.key==='ArrowLeft')goToPage(previousPage());
  if(event.key==='ArrowRight')goToPage(nextPage());
 });
-window.addEventListener('resize',syncMenu);
+window.addEventListener('resize',()=>{syncMenu();scheduleSpreadRender()});
 syncMenu();loadBooks();
