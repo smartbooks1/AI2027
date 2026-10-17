@@ -7,7 +7,7 @@ const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathnam
 const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
-let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,pdfDocument=null,openToken=0,zoomLevel=100,twoPage=false,spreadRenderToken=0,spreadRenderTasks=[];
+let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,pdfDocument=null,openToken=0,zoomLevel=100,fitMode='page',twoPage=false,spreadRenderToken=0,spreadRenderTasks=[];
 // Canvas spreads need supersampling to retain the sharp text of the native PDF viewer.
 const MIN_SPREAD_RENDER_RATIO=2;
 const MAX_SPREAD_RENDER_RATIO=3;
@@ -66,6 +66,7 @@ async function loadBooks(){
   const missing=check.filter(Boolean);
   if(missing.length)throw Error('지정한 PDF 파일을 찾지 못했습니다: '+missing.join(', ')+'. books.json의 file 경로와 실제 업로드 파일명을 확인해 주세요.');
   readerDefaults={fit:config.readerDefaults?.fit||'auto',twoPage:config.readerDefaults?.twoPage===true,allowDownload:config.readerDefaults?.allowDownload===true};
+  fitMode=readerDefaults.fit==='width'?'width':'page';
   twoPage=readerDefaults.twoPage;
 
   const siteTitle=typeof config.siteTitle==='string'&&config.siteTitle.trim()?config.siteTitle:'전자책 자료실';
@@ -84,6 +85,7 @@ function updatePageControls(){
  $('firstPage').disabled=atFirst;$('prevPage').disabled=atFirst;$('edgePrev').disabled=atFirst;
  $('nextPage').disabled=atLast;$('lastPage').disabled=atLast;$('edgeNext').disabled=atLast;
  $('readerZoomLabel').textContent=zoomLevel+'%';$('zoomOut').disabled=zoomLevel<=50;$('zoomIn').disabled=zoomLevel>=200;
+ $('fitWidth').setAttribute('aria-pressed',String(fitMode==='width'));$('fitPage').setAttribute('aria-pressed',String(fitMode==='page'));
  $('singlePageMode').setAttribute('aria-pressed',String(!twoPage));$('twoPageMode').setAttribute('aria-pressed',String(twoPage));
 }
 function lastPageStart(){
@@ -105,8 +107,10 @@ function nativePageUrl(pageNumber){
  // PDF viewport when only the fragment's page number changes.
  url.searchParams.set('reader-page',String(pageNumber));
  url.searchParams.set('reader-zoom',String(zoomLevel));
+ url.searchParams.set('reader-fit',fitMode||'manual');
  url.searchParams.set('reader-view',twoPage?'two':'one');
- url.hash='page='+pageNumber+'&zoom='+zoomLevel+'&toolbar=0&navpanes=0';
+ const fitView=fitMode==='width'?'FitH':fitMode==='page'?'Fit':null;
+ url.hash='page='+pageNumber+(fitView?'&view='+fitView:'&zoom='+zoomLevel)+'&toolbar=0&navpanes=0';
  return url.href;
 }
 function cancelSpreadRendering(){
@@ -134,7 +138,8 @@ async function renderBookSpread(container,token){
   const padding=Math.min(68,Math.max(24,container.clientWidth*.045)),gap=3;
   const widthScale=Math.max(.1,(container.clientWidth-padding*2-gap)/(maxWidth*2));
   const heightScale=Math.max(.1,(container.clientHeight-padding*2)/maxHeight);
-  const scale=Math.min(widthScale,heightScale)*(zoomLevel/100);
+  const fitScale=fitMode==='width'?widthScale:Math.min(widthScale,heightScale);
+  const scale=fitScale*(zoomLevel/100);
   const reference=real[0].getViewport({scale}),referenceWidth=Math.max(1,Math.round(reference.width)),referenceHeight=Math.max(1,Math.round(reference.height));
   const stage=document.createElement('div');stage.className='spread-stage';stage.style.setProperty('--spread-padding',padding+'px');
   const renderItems=[];
@@ -160,8 +165,12 @@ function previousPage(){return twoPage?(currentPage<=2?1:currentPage-2):currentP
 function nextPage(){return twoPage?(currentPage===1?2:currentPage+2):currentPage+1}
 function setZoom(next){
  if(!currentBookUrl)return;
- const value=Math.max(50,Math.min(200,next));if(value===zoomLevel)return;
- zoomLevel=value;updatePageControls();renderNativePages();
+ const value=Math.max(50,Math.min(200,next));if(value===zoomLevel&&fitMode===null)return;
+ zoomLevel=value;fitMode=null;updatePageControls();renderNativePages();
+}
+function setFitMode(mode){
+ if(!currentBookUrl||fitMode===mode)return;
+ fitMode=mode;zoomLevel=100;updatePageControls();renderNativePages();
 }
 function setTwoPage(enabled){
  if(!currentBookUrl)return;
@@ -201,6 +210,8 @@ $('edgePrev').onclick=()=>goToPage(previousPage());
 $('edgeNext').onclick=()=>goToPage(nextPage());
 $('zoomOut').onclick=()=>setZoom(zoomLevel-10);
 $('zoomIn').onclick=()=>setZoom(zoomLevel+10);
+$('fitWidth').onclick=()=>setFitMode('width');
+$('fitPage').onclick=()=>setFitMode('page');
 $('singlePageMode').onclick=()=>setTwoPage(false);
 $('twoPageMode').onclick=()=>setTwoPage(true);
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
