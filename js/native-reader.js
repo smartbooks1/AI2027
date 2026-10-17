@@ -219,6 +219,7 @@ $('singlePageMode').onclick=()=>{setTwoPage(false);if(smallScreen())setMobileToo
 $('twoPageMode').onclick=()=>{setTwoPage(true);if(smallScreen())setMobileToolsOpen(false)};
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
 const mobilePortrait=()=>smallScreen()&&window.matchMedia('(orientation:portrait)').matches;
+function syncMobileViewportHeight(){if(smallScreen())document.documentElement.style.setProperty('--reader-viewport-height',window.innerHeight+'px');else document.documentElement.style.removeProperty('--reader-viewport-height')}
 function syncMenu(){
  const expanded=smallScreen()?$('sidebar').classList.contains('open'):!document.querySelector('.layout').classList.contains('sidebar-collapsed');
  $('menu').textContent=expanded?'☰ 목차 접기':'☰ 목차 열기';$('menu').setAttribute('aria-expanded',String(expanded));
@@ -275,7 +276,7 @@ pageSurface.addEventListener('touchend',event=>{
  }
 },{passive:true});
 pageSurface.addEventListener('touchcancel',()=>{if(pinchState?.stage){pinchState.stage.style.transform='';pinchState.stage.style.transformOrigin=''}pinchState=null;swipeStart=null;updatePageControls()},{passive:true});
-window.addEventListener('orientationchange',()=>setTimeout(()=>{setMobileToolsOpen(false);if(mobilePortrait()){twoPage=false;fitMode='page';zoomLevel=100}updatePageControls();renderNativePages()},120));
+window.addEventListener('orientationchange',()=>setTimeout(()=>{syncMobileViewportHeight();setMobileToolsOpen(false);if(mobilePortrait()){twoPage=false;fitMode='page';zoomLevel=100}updatePageControls();renderNativePages()},120));
 document.addEventListener('contextmenu',event=>event.preventDefault());
-window.addEventListener('resize',()=>{syncMenu();scheduleSpreadRender()});
-syncMenu();loadBooks();
+window.addEventListener('resize',()=>{syncMobileViewportHeight();syncMenu();scheduleSpreadRender()});
+syncMobileViewportHeight();syncMenu();loadBooks();

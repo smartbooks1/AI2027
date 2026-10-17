@@ -32,21 +32,19 @@
 .native-edge-prev{left:16px}.native-edge-next{right:16px}
 .layout.focus-reading .native-viewer{min-height:0;padding:0}
 @media(max-width:760px),(max-width:1000px) and (pointer:coarse){
- .layout{display:flex;flex-direction:column}.sidebar,.sidebar.open{display:none!important}
- .main{flex:1;height:auto;min-height:0}.native-viewer{padding:0}
+ body{overflow:hidden}.layout{display:flex;flex-direction:column;height:var(--reader-viewport-height,100dvh);min-height:0;overflow:hidden}.sidebar,.sidebar.open{display:none!important}
+ .main{flex:1 1 0;height:var(--reader-viewport-height,100dvh);max-height:var(--reader-viewport-height,100dvh);min-height:0;overflow:hidden}.native-viewer{flex:1 1 0;height:0;min-height:0;padding:0}.native-pdf-shell{height:100%;min-height:0}
  .toolbar{display:flex;min-height:42px;padding:5px 10px;flex-wrap:nowrap;background:#fff}.desktop-header{display:none!important}
  .mobile-header{display:flex;align-items:center;justify-content:space-between;width:100%;min-width:0;gap:12px}.mobile-logo{display:block;width:76px;max-height:24px;object-fit:contain;object-position:left center}
  .mobile-toc{position:relative;display:flex!important;align-items:center!important;gap:5px!important;min-width:92px;height:32px;padding:0 9px!important;border:1px solid #d8e2ec;border-radius:9px;background:#f7f9fc;color:#294b6c!important;font-size:12px!important;font-weight:700}.mobile-toc::after{content:'⌄';margin-left:auto;color:#72859b;font-size:14px;line-height:1}.mobile-toc select{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;cursor:pointer}
- .layout.focus-reading .main{height:100dvh}
- .reader-pagebar{justify-content:center;gap:7px;height:48px;padding:0 8px;overflow:visible}.reader-tool-group{padding:3px}.reader-pagebar button{width:32px;height:32px}.reader-page-controls #firstPage,.reader-page-controls #lastPage{display:none}.reader-page-status{min-width:68px;height:32px;margin:0 1px;padding:0 7px}.reader-zoom-status{min-width:46px;height:32px}
+ .layout.focus-reading .main{height:var(--reader-viewport-height,100dvh);max-height:var(--reader-viewport-height,100dvh)}
+ .reader-pagebar{justify-content:center;gap:7px;height:48px;padding:0 8px;overflow:visible}.reader-tool-group{padding:3px}.reader-pagebar button{width:32px;height:32px}.reader-page-controls{padding:0;border:0;background:transparent;box-shadow:none}.reader-page-controls #firstPage,.reader-page-controls #prevPage,.reader-page-controls #nextPage,.reader-page-controls #lastPage{display:none}.reader-page-status{min-width:68px;height:32px;margin:0;padding:0 7px}.reader-zoom-status{min-width:46px;height:32px}
  .reader-secondary-tools{display:none;position:absolute;z-index:8;top:calc(100% + 6px);right:8px;max-width:calc(100vw - 16px);padding:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;border:1px solid #ffffff24;border-radius:13px;background:#252a31f5;box-shadow:0 12px 28px #0008;backdrop-filter:blur(12px)}.reader-pagebar.more-open .reader-secondary-tools{display:flex}
  .reader-secondary-tools .mobile-page-jumps{display:flex}
  .mobile-more{display:grid!important;place-items:center;width:34px!important;height:34px!important;border:1px solid #ffffff1c!important;border-radius:10px!important;background:#1118274d!important;color:#d6dce5!important}.mobile-more[aria-expanded="true"]{background:#e9f3ff!important;color:#173c63!important}
  .reader-secondary-tools .focus-tool span{display:block}.focus-tool{grid-template-rows:17px 10px;min-width:48px;padding:2px 7px 1px!important}
  .native-pages.pdfjs-pages{touch-action:pan-x pan-y}.native-pages.page-fitted{touch-action:pan-y}
  .spread-stage{gap:2px}
- .native-edge{top:calc(50% + 27px);width:38px;height:58px;border-radius:10px;opacity:.45}
- .native-edge svg{width:24px;height:24px}
- .native-edge-prev{left:7px}.native-edge-next{right:7px}
+ .native-edge{display:none!important}
 }
 @media(orientation:portrait) and (max-width:760px),(orientation:portrait) and (max-width:1000px) and (pointer:coarse){.reader-secondary-tools .view-controls{display:none!important}}
