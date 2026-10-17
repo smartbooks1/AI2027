@@ -7,7 +7,8 @@ const PAGE_REPOSITORY=location.hostname.endsWith('.github.io')?(location.pathnam
 const ROOT=PAGE_OWNER+'/'+PAGE_REPOSITORY;
 const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf$/i,'');
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
-let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookUrl='',currentBookTitle='',pageInfoTask=null,pdfDocument=null,openToken=0,zoomLevel=100,fitMode='page',twoPage=false,spreadRenderToken=0,spreadRenderTasks=[];
+let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookIndex=-1,currentBookUrl='',currentBookTitle='',pageInfoTask=null,pdfDocument=null,openToken=0,zoomLevel=100,fitMode='page',twoPage=false,spreadRenderToken=0,spreadRenderTasks=[];
+const BOOKMARK_KEY='ai2027:manual-bookmark:v1';
 // Canvas spreads need supersampling to retain the sharp text of the native PDF viewer.
 const MIN_SPREAD_RENDER_RATIO=2;
 const MAX_SPREAD_RENDER_RATIO=3;
@@ -97,6 +98,35 @@ function updatePageControls(){
  $('mobileFitWidth').setAttribute('aria-pressed',String(fitMode==='width'));$('mobileFitPage').setAttribute('aria-pressed',String(fitMode==='page'));
  $('singlePageMode').setAttribute('aria-pressed',String(!twoPage));$('twoPageMode').setAttribute('aria-pressed',String(twoPage));
  $('mobileSinglePageMode').setAttribute('aria-pressed',String(!twoPage));$('mobileTwoPageMode').setAttribute('aria-pressed',String(twoPage));
+ updateBookmarkButtons();
+}
+function readBookmark(){
+ try{const value=JSON.parse(localStorage.getItem(BOOKMARK_KEY));return value&&typeof value.file==='string'&&Number.isInteger(value.page)&&value.page>0?value:null}catch{return null}
+}
+function bookmarkTarget(){
+ const saved=readBookmark();if(!saved)return null;
+ const index=books.findIndex(book=>book.file===saved.file);return index<0?null:{...saved,index,title:books[index].title};
+}
+function updateBookmarkButtons(){
+ const target=bookmarkTarget(),exists=!!target,ready=!!(pdfDocument&&totalPages&&currentBookIndex>=0);
+ $('bookmarkSave').disabled=!ready;$('bookmarkGo').hidden=!exists;$('bookmarkDelete').hidden=!exists;
+ const here=!!(target&&target.index===currentBookIndex&&target.page===currentPage),saveLabel=here?'책갈피 저장됨':'책갈피 설정';
+ $('bookmarkSave').setAttribute('aria-pressed',String(here));$('bookmarkSave').setAttribute('aria-label',here?'현재 페이지에 책갈피가 설정됨':'현재 페이지에 책갈피 설정');$('bookmarkSave').title=saveLabel;$('bookmarkSave').querySelector('span').textContent=saveLabel;
+ if(target){$('bookmarkGo').title=target.title+' '+target.page+'쪽으로 이동';$('bookmarkGo').setAttribute('aria-label',$('bookmarkGo').title)}
+}
+function saveBookmark(){
+ if(!pdfDocument||currentBookIndex<0||!totalPages)return;
+ try{localStorage.setItem(BOOKMARK_KEY,JSON.stringify({file:books[currentBookIndex].file,page:currentPage}))}catch{}
+ updateBookmarkButtons();if(smallScreen())setMobileToolsOpen(false);
+}
+function deleteBookmark(){
+ try{localStorage.removeItem(BOOKMARK_KEY)}catch{}
+ updateBookmarkButtons();if(smallScreen())setMobileToolsOpen(false);
+}
+function goToBookmark(){
+ const target=bookmarkTarget();if(!target)return;
+ if(smallScreen())setMobileToolsOpen(false);
+ if(target.index===currentBookIndex)goToPage(target.page);else openBook(target.index,{page:target.page});
 }
 function lastPageStart(){
  if(!twoPage||totalPages<=1)return Math.max(1,totalPages);
@@ -182,7 +212,7 @@ function setTwoPage(enabled){
  if(twoPage===enabled)return;twoPage=enabled;currentPage=normalizePage(currentPage);
  updatePageControls();renderNativePages();
 }
-async function openBook(index){
+async function openBook(index,options={}){
  const token=++openToken;
  cancelSpreadRendering();
  if(pageInfoTask){pageInfoTask.destroy().catch(()=>{});pageInfoTask=null}
@@ -192,7 +222,7 @@ async function openBook(index){
  if(url.origin!==location.origin){info('같은 사이트의 PDF만 열 수 있습니다.',true);return}
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  $('sidebar').classList.remove('open');syncMenu();
- currentBookUrl=url.href;currentBookTitle=book.title;currentPage=1;totalPages=0;zoomLevel=100;updatePageControls();
+ currentBookIndex=index;currentBookUrl=url.href;currentBookTitle=book.title;currentPage=1;totalPages=0;zoomLevel=100;updatePageControls();
  // The native toolbar is replaced by the simpler site-owned page bar.
  renderNativePages();
  info('페이지 정보를 불러오는 중입니다…');
@@ -201,6 +231,7 @@ async function openBook(index){
   const documentRef=await loading.promise;
   if(token!==openToken){await documentRef.destroy();return}
   pdfDocument=documentRef;totalPages=documentRef.numPages;pageInfoTask=null;
+  if(Number.isInteger(options.page))currentPage=normalizePage(Math.max(1,Math.min(totalPages,options.page)));
   updatePageControls();renderNativePages();$('message').hidden=true;
  }catch(error){
   if(token===openToken){pageInfoTask=null;info('페이지 수를 확인하지 못했습니다: '+error.message,true)}
@@ -229,6 +260,9 @@ $('mobileFitWidth').onclick=()=>setFitMode('width');
 $('mobileFitPage').onclick=()=>setFitMode('page');
 $('mobileSinglePageMode').onclick=()=>setTwoPage(false);
 $('mobileTwoPageMode').onclick=()=>setTwoPage(true);
+$('bookmarkSave').onclick=saveBookmark;
+$('bookmarkGo').onclick=goToBookmark;
+$('bookmarkDelete').onclick=deleteBookmark;
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
 const mobilePortrait=()=>smallScreen()&&window.matchMedia('(orientation:portrait)').matches;
 function syncMobileViewportHeight(){if(smallScreen())document.documentElement.style.setProperty('--reader-viewport-height',window.innerHeight+'px');else document.documentElement.style.removeProperty('--reader-viewport-height')}
