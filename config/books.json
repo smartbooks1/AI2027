@@ -13,10 +13,6 @@
   {
     "file": "Sample3_진정한빅뱅의시작.PDF",
     "allowDownload": false
-  },
-  {
-    "file": "Sample4_워드패밀리연습.pdf",
-    "allowDownload": false
   }
    
   ],
@@ -32,10 +28,6 @@
     {
       "contains": "Sample3",
       "title": "Trend 1: 진정한 빅뱅의 시작"
-    },
-    {
-      "contains": "Sample4",
-      "title": "워드패밀리 연습"
     }
         
   ],
