@@ -3,18 +3,14 @@
   "autoDiscover": false,
   "books": [
     {
-    "file": "Sample1_머리말.PDF",
-    "allowDownload": false
-  },
-  {
-    "file": "Sample2_차례.PDF",
-    "allowDownload": false
-  },
-  {
-    "file": "Sample3_진정한빅뱅의시작.PDF",
-    "allowDownload": false
-  }
-   
+      "file": "Sample1_머리말.PDF"
+    },
+    {
+      "file": "Sample2_차례.PDF"
+    },
+    {
+      "file": "Sample3_진정한빅뱅의시작.PDF"
+    }
   ],
   "titleRules": [
     {
@@ -29,11 +25,9 @@
       "contains": "Sample3",
       "title": "Trend 1: 진정한 빅뱅의 시작"
     }
-        
   ],
   "readerDefaults": {
     "fit": "auto",
-    "twoPage": false,
-    "allowDownload": false
+    "twoPage": false
   }
 }
