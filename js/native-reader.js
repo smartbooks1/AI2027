@@ -150,14 +150,17 @@ function spreadRenderRatio(width,height){
  const screenRatio=Math.max(MIN_SPREAD_RENDER_RATIO,Math.min(window.devicePixelRatio||1,MAX_SPREAD_RENDER_RATIO));
  return Math.min(screenRatio,Math.sqrt(MAX_SPREAD_PAGE_PIXELS/(width*height)));
 }
-function renderNativePages(){
- cancelSpreadRendering();const token=spreadRenderToken,pages=$('nativePages');pages.replaceChildren();
+function renderNativePages(direction=0){
+ cancelSpreadRendering();const token=spreadRenderToken,pages=$('nativePages');
+ const animateTurn=direction&&twoPage&&!smallScreen()&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+ const previous=animateTurn?pages.querySelector('.spread-stage:not([hidden])'):null;
+ if(previous)pages.replaceChildren(previous);else pages.replaceChildren();
  pages.classList.toggle('two-page',twoPage);
  pages.classList.toggle('page-fitted',fitMode==='page'&&zoomLevel===100);
  pages.classList.toggle('swipe-enabled',smallScreen()&&fitMode!==null&&zoomLevel===100);
- if(pdfDocument)renderPageView(pages,token);
+ if(pdfDocument)renderPageView(pages,token,previous?direction:0);
 }
-async function renderPageView(container,token){
+async function renderPageView(container,token,direction=0){
  const documentRef=pdfDocument,slots=visiblePages();
  try{
   await new Promise(resolve=>requestAnimationFrame(resolve));
@@ -180,17 +183,27 @@ async function renderPageView(container,token){
    const outputScale=spreadRenderRatio(displayWidth,displayHeight);
    const canvas=document.createElement('canvas');canvas.className='spread-page '+sideClass;canvas.width=Math.ceil(displayWidth*outputScale);canvas.height=Math.ceil(displayHeight*outputScale);canvas.style.width=displayWidth+'px';canvas.style.height=displayHeight+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,display,outputScale});
   });
-  container.appendChild(stage);
+  // Keep the finished spread visible while the next canvases render off screen.
+  stage.hidden=!!direction;container.appendChild(stage);
   spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d',{alpha:false}),viewport:item.display,transform:[item.outputScale,0,0,item.outputScale,0,0],background:'#fff'}));
   await Promise.all(spreadRenderTasks.map(task=>task.promise));
-  if(token===spreadRenderToken)spreadRenderTasks=[];
+  if(token!==spreadRenderToken||documentRef!==pdfDocument)return;
+  spreadRenderTasks=[];
+  if(direction){
+   stage.hidden=false;container.replaceChildren(stage);
+   stage.animate([
+    {transform:'translateX('+(direction*18)+'px)',opacity:.65},
+    {transform:'translateX(0)',opacity:1}
+   ],{duration:180,easing:'cubic-bezier(.2,.7,.3,1)'});
+  }
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
 }
 function goToPage(pageNumber){
  if(!totalPages)return;
  const next=normalizePage(pageNumber);
  if(next===currentPage){updatePageControls();return}
- currentPage=next;updatePageControls();renderNativePages();
+ const direction=next>currentPage?1:-1;
+ currentPage=next;updatePageControls();renderNativePages(direction);
 }
 function submitPageInput(){
  const input=$('currentPage'),value=input.value.trim(),requested=Number(value);
