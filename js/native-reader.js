@@ -81,7 +81,7 @@ async function loadBooks(){
   books.forEach((b,i)=>{
    const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn);
    const resource=document.createElement('button'),resourceTitle=document.createElement('span'),arrow=document.createElement('span');resource.type='button';resource.className='welcome-resource';resourceTitle.textContent=b.title;arrow.textContent='\u2192';arrow.setAttribute('aria-hidden','true');resource.append(resourceTitle,arrow);resource.onclick=()=>openBook(i);$('welcomeResources').appendChild(resource);
-   const option=document.createElement('button'),number=document.createElement('span'),label=document.createElement('span');option.type='button';option.className='mobile-toc-option';option.setAttribute('role','option');option.setAttribute('aria-selected','false');number.className='mobile-toc-number';number.textContent=String(i+1).padStart(2,'0');label.className='mobile-toc-title';label.textContent=b.title;option.append(number,label);option.onclick=()=>{setMobileTocOpen(false);openBook(i)};mobileList.appendChild(option);
+   const option=document.createElement('button'),label=document.createElement('span');option.type='button';option.className='mobile-toc-option';option.setAttribute('role','option');option.setAttribute('aria-selected','false');label.className='mobile-toc-title';label.textContent=b.title;option.append(label);option.onclick=()=>{setMobileTocOpen(false);openBook(i)};mobileList.appendChild(option);
   });
   $('message').hidden=true;
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
@@ -247,7 +247,7 @@ async function openBook(index,options={}){
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  document.querySelectorAll('.mobile-toc-option').forEach((button,i)=>{const active=i===index;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active))});
  setMobileTocOpen(false);
- $('welcome').hidden=true;$('viewer').classList.remove('is-welcome');
+ document.querySelector('.main').classList.remove('is-home');$('welcome').hidden=true;$('viewer').classList.remove('is-welcome');
  $('sidebar').classList.remove('open');syncMenu();
  currentBookIndex=index;currentBookUrl=url.href;currentPage=1;totalPages=0;zoomLevel=100;updatePageControls();
  // The native toolbar is replaced by the simpler site-owned page bar.
@@ -301,8 +301,7 @@ let resizeTimer=null;
 function scheduleSpreadRender(){clearTimeout(resizeTimer);if(pdfDocument)resizeTimer=setTimeout(renderNativePages,120)}
 $('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu();scheduleSpreadRender()};
 function setMobileToolsOpen(open){$('readerPagebar').classList.toggle('more-open',open);$('mobileMore').setAttribute('aria-expanded',String(open))}
-function setMobileTocOpen(open){const toc=document.querySelector('.mobile-toc');toc.classList.remove('attention');$('mobileTocMenu').hidden=!open;$('mobileTocButton').setAttribute('aria-expanded',String(open));$('welcomeTocButton').setAttribute('aria-expanded',String(open));toc.classList.toggle('open',open)}
-$('welcomeTocButton').onclick=()=>{setMobileTocOpen(true);$('mobileTocList').querySelector('button')?.focus()};
+function setMobileTocOpen(open){const toc=document.querySelector('.mobile-toc');toc.classList.remove('attention');$('mobileTocMenu').hidden=!open;$('mobileTocButton').setAttribute('aria-expanded',String(open));toc.classList.toggle('open',open)}
 $('mobileTocButton').onclick=event=>{event.stopPropagation();const open=$('mobileTocMenu').hidden;setMobileToolsOpen(false);setMobileTocOpen(open)};
 $('mobileMore').onclick=event=>{event.stopPropagation();setMobileTocOpen(false);setMobileToolsOpen(!$('readerPagebar').classList.contains('more-open'))};
 document.addEventListener('pointerdown',event=>{if(!smallScreen())return;if(!$('readerPagebar').contains(event.target))setMobileToolsOpen(false);if(!document.querySelector('.mobile-toc').contains(event.target))setMobileTocOpen(false)});
