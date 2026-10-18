@@ -15,15 +15,15 @@
   "titleRules": [
     {
       "contains": "Sample1",
-      "title": "머리말"
+      "title": "7장_일잘러를 위한 문서·업무 생산성 특화형 AI"
     },
     {
       "contains": "Sample2",
-      "title": "차례"
+      "title": "8장_흩어진 도구를 이어붙이는 업무 자동화 연결형 AI"
     },
     {
       "contains": "Sample3",
-      "title": "Trend 1: 진정한 빅뱅의 시작"
+      "title": "9장_이미지·음성/음악·영상 생성을 위한 미디어 특화형 A"
     }
   ],
   "readerDefaults": {
