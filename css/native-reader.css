@@ -122,16 +122,21 @@
 }
 
 /* Keep the desktop welcome; give mobile readers a direct route to resources. */
-.welcome-mobile,.welcome-mobile-title{display:none}
+.welcome-mobile,.welcome-mobile-title,.welcome-cover,.welcome-intro{display:none}
 @media(max-width:760px),(max-width:1000px) and (pointer:coarse){
  .welcome{padding:32px 24px 40px;background:#fff}
  .welcome-card{max-width:560px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent}
  .welcome-desktop-title,.welcome-desktop,.welcome-card>.welcome-copyright{display:none}
  .welcome-mobile,.welcome-mobile-title{display:block}
  .main.is-home .mobile-toc{display:none!important}
- .welcome-eyebrow{margin-bottom:16px;font-size:10px;letter-spacing:.12em}
- .welcome h2{margin-bottom:16px;font-size:clamp(18px,6.8cqi,26px);line-height:1.4;white-space:nowrap;letter-spacing:-.045em}
- .welcome-intro{margin:0;color:#647180;font-size:clamp(12px,4.4cqi,15px);line-height:1.8;white-space:nowrap}
+ .welcome-eyebrow{display:none}
+ .welcome-heading{display:grid;grid-template-columns:clamp(68px,21cqi,88px) minmax(0,1fr);align-items:center;gap:20px}
+ .welcome-cover{display:block;width:100%;height:auto;border-radius:2px;box-shadow:0 4px 12px #203b551a}
+ .welcome-heading-copy{min-width:0}
+ .welcome h2{margin:0 0 10px;font-size:clamp(19px,5.8cqi,24px);line-height:1.4;letter-spacing:-.035em}
+ .welcome-mobile-title>span{display:block}
+ .welcome-book-title{margin-bottom:4px;font-size:13px;font-weight:500;letter-spacing:0;color:#647180}
+ .welcome-intro{display:block;margin:0;color:#647180;font-size:12px;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
  .welcome-resources{margin:32px 0 28px}
  .welcome-resources h3{margin:0 0 10px;color:#203b55;font-size:14px;font-weight:700}
  .welcome-resource-list{border-top:1px solid #e3e8ee}
