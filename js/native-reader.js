@@ -70,6 +70,7 @@ async function loadBooks(){
   fitMode=readerDefaults.fit==='width'?'width':'page';
   twoPage=readerDefaults.twoPage;
   if(smallScreen()){
+   twoPage=false;
    if(mobilePortrait()){fitMode='page';twoPage=false}
    else fitMode='width';
   }

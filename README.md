@@ -41,7 +41,7 @@ GitHub Pages에서 여러 PDF를 하나의 전자책 목차로 구성하는 뷰�
 - `books[].visible`: `false`이면 목차에서 제외
 - `titleRules`: 파일명에 특정 문자열이 포함될 때 적용할 목차 이름
 - `readerDefaults.fit`: `auto`, `page`, `width` 중 하나
-- `readerDefaults.twoPage`: PC와 모바일 가로 화면의 초기 펼친 보기 여부
+- `readerDefaults.twoPage`: PC의 초기 펼친 보기 여부 (기본값 `true`). 모바일은 한 페이지로 시작합니다.
 
 ## 책갈피와 공개 범위
 

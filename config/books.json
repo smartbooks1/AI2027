@@ -27,7 +27,7 @@
     }
   ],
   "readerDefaults": {
-    "fit": "auto",
-    "twoPage": false
+    "fit": "page",
+    "twoPage": true
   }
 }
