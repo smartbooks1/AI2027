@@ -9,7 +9,6 @@ const displayName=path=>decodeURIComponent(path.split('/').pop()).replace(/\.pdf
 const link=path=>path.split('/').map(encodeURIComponent).join('/');
 let books=[],readerDefaults={fit:'auto'},currentPage=1,totalPages=0,currentBookIndex=-1,currentBookUrl='',pageInfoTask=null,pdfDocument=null,openToken=0,zoomLevel=100,fitMode='page',twoPage=false,spreadRenderToken=0,spreadRenderTasks=[];
 const BOOKMARK_KEY='ai2027:manual-bookmark:v1';
-const TOC_HINT_KEY='ai2027:toc-hint-seen:v1';
 // Canvas spreads need supersampling to retain the sharp text of the native PDF viewer.
 const MIN_SPREAD_RENDER_RATIO=2;
 const MAX_SPREAD_RENDER_RATIO=3;
@@ -78,12 +77,13 @@ async function loadBooks(){
   const siteTitle=typeof config.siteTitle==='string'&&config.siteTitle.trim()?config.siteTitle:'전자책 자료실';
   $('siteTitle').textContent=siteTitle;document.title=siteTitle;
   if(!books.length){$('chapters').replaceChildren();info('표시할 PDF가 없습니다. config/books.json의 books, visible, autoDiscover 설정을 확인해 주세요.');return}
-  const nav=$('chapters'),mobileList=$('mobileTocList');nav.replaceChildren();mobileList.replaceChildren();$('mobileTocCount').textContent=books.length+'개';$('mobileTocBadge').textContent=String(books.length);
+  const nav=$('chapters'),mobileList=$('mobileTocList');nav.replaceChildren();mobileList.replaceChildren();$('welcomeResources').replaceChildren();$('mobileTocCount').textContent=books.length+'개';$('mobileTocBadge').textContent=String(books.length);
   books.forEach((b,i)=>{
    const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn);
+   const resource=document.createElement('button'),resourceTitle=document.createElement('span'),arrow=document.createElement('span');resource.type='button';resource.className='welcome-resource';resourceTitle.textContent=b.title;arrow.textContent='\u2192';arrow.setAttribute('aria-hidden','true');resource.append(resourceTitle,arrow);resource.onclick=()=>openBook(i);$('welcomeResources').appendChild(resource);
    const option=document.createElement('button'),number=document.createElement('span'),label=document.createElement('span');option.type='button';option.className='mobile-toc-option';option.setAttribute('role','option');option.setAttribute('aria-selected','false');number.className='mobile-toc-number';number.textContent=String(i+1).padStart(2,'0');label.className='mobile-toc-title';label.textContent=b.title;option.append(number,label);option.onclick=()=>{setMobileTocOpen(false);openBook(i)};mobileList.appendChild(option);
   });
-  $('message').hidden=true;showMobileTocHint();
+  $('message').hidden=true;
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 
@@ -301,12 +301,8 @@ let resizeTimer=null;
 function scheduleSpreadRender(){clearTimeout(resizeTimer);if(pdfDocument)resizeTimer=setTimeout(renderNativePages,120)}
 $('menu').onclick=()=>{if(smallScreen())$('sidebar').classList.toggle('open');else document.querySelector('.layout').classList.toggle('sidebar-collapsed');syncMenu();scheduleSpreadRender()};
 function setMobileToolsOpen(open){$('readerPagebar').classList.toggle('more-open',open);$('mobileMore').setAttribute('aria-expanded',String(open))}
-function showMobileTocHint(){
- if(!smallScreen())return;
- try{if(sessionStorage.getItem(TOC_HINT_KEY))return;sessionStorage.setItem(TOC_HINT_KEY,'1')}catch{}
- const toc=document.querySelector('.mobile-toc');toc.classList.add('attention');setTimeout(()=>toc.classList.remove('attention'),4500);
-}
-function setMobileTocOpen(open){const toc=document.querySelector('.mobile-toc');toc.classList.remove('attention');$('mobileTocMenu').hidden=!open;$('mobileTocButton').setAttribute('aria-expanded',String(open));toc.classList.toggle('open',open)}
+function setMobileTocOpen(open){const toc=document.querySelector('.mobile-toc');toc.classList.remove('attention');$('mobileTocMenu').hidden=!open;$('mobileTocButton').setAttribute('aria-expanded',String(open));$('welcomeTocButton').setAttribute('aria-expanded',String(open));toc.classList.toggle('open',open)}
+$('welcomeTocButton').onclick=()=>{setMobileTocOpen(true);$('mobileTocList').querySelector('button')?.focus()};
 $('mobileTocButton').onclick=event=>{event.stopPropagation();const open=$('mobileTocMenu').hidden;setMobileToolsOpen(false);setMobileTocOpen(open)};
 $('mobileMore').onclick=event=>{event.stopPropagation();setMobileTocOpen(false);setMobileToolsOpen(!$('readerPagebar').classList.contains('more-open'))};
 document.addEventListener('pointerdown',event=>{if(!smallScreen())return;if(!$('readerPagebar').contains(event.target))setMobileToolsOpen(false);if(!document.querySelector('.mobile-toc').contains(event.target))setMobileTocOpen(false)});

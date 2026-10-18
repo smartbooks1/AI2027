@@ -120,3 +120,31 @@
  .welcome-body{font-size:15px;line-height:1.9}
  .welcome-copyright{margin-top:28px;padding-top:22px}
 }
+
+/* Keep the desktop welcome; give mobile readers a direct route to resources. */
+.welcome-mobile,.welcome-mobile-title{display:none}
+@media(max-width:760px),(max-width:1000px) and (pointer:coarse){
+ .welcome{padding:32px 24px 40px;background:#fff}
+ .welcome-card{max-width:560px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent}
+ .welcome-desktop-title,.welcome-desktop,.welcome-card>.welcome-copyright{display:none}
+ .welcome-mobile,.welcome-mobile-title{display:block}
+ .welcome-eyebrow{margin-bottom:16px;font-size:10px;letter-spacing:.12em}
+ .welcome h2{margin-bottom:16px;font-size:30px;line-height:1.4;letter-spacing:-.045em}
+ .welcome-intro{margin:0;color:#647180;font-size:15px;line-height:1.8;word-break:keep-all}
+ .welcome-toc-button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:50px;margin-top:24px;padding:13px 18px;border:1px solid #245f94;border-radius:10px;background:#245f94;color:#fff;font-size:15px;font-weight:600;text-align:left}
+ .welcome-toc-button:hover{background:#1c4e7b}
+ .welcome-resources{margin:32px 0 28px}
+ .welcome-resources h3{margin:0 0 10px;color:#203b55;font-size:14px;font-weight:700}
+ .welcome-resource-list{border-top:1px solid #e3e8ee}
+ .welcome-resource{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:56px;padding:15px 0;border:0;border-bottom:1px solid #e3e8ee;border-radius:0;background:transparent;color:#2e4e6b;text-align:left;font-size:15px;line-height:1.6}
+ .welcome-resource span:first-child{min-width:0;overflow-wrap:anywhere;word-break:keep-all}
+ .welcome-resource span:last-child{flex:none;color:#7b8fa2}
+ .welcome-resource:hover{background:#f5f8fb}
+ .welcome-details{border-bottom:1px solid #e8ecf0;color:#737b85;font-size:12px;line-height:1.9;word-break:keep-all;overflow-wrap:anywhere}
+ .welcome-details summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:12px 0;list-style:none;cursor:pointer;color:#626c77;font-size:13px;font-weight:500}
+ .welcome-details summary::-webkit-details-marker{display:none}
+ .welcome-details summary::after{content:'+';font-size:18px;font-weight:400}
+ .welcome-details[open] summary::after{content:'\2212'}
+ .welcome-details summary:focus-visible{outline:3px solid #a5c8fb;outline-offset:2px}
+ .welcome-details p{margin:0 0 12px}
+}
