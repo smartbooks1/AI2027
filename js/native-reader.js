@@ -191,12 +191,21 @@ async function renderPageView(container,token,direction=0){
   spreadRenderTasks=[];
   if(direction){
    stage.hidden=false;container.replaceChildren(stage);
-   stage.animate([
-    {transform:'translateX('+(direction*18)+'px)',opacity:.65},
-    {transform:'translateX(0)',opacity:1}
-   ],{duration:180,easing:'cubic-bezier(.2,.7,.3,1)'});
+   animateSpreadTurn(stage,direction);
   }
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
+}
+function animateSpreadTurn(stage,direction){
+ // Animate existing canvases around the binding; no copies or extra PDF renders.
+ const turning=stage.querySelector(direction>0?'.spread-left':'.spread-right');
+ const opposite=stage.querySelector(direction>0?'.spread-right':'.spread-left');
+ if(!turning)return;
+ const origin=direction>0?'100% 50%':'0% 50%',angle=direction>0?72:-72;
+ turning.animate([
+  {transform:'perspective(1600px) rotateY('+angle+'deg)',transformOrigin:origin,opacity:.4},
+  {transform:'perspective(1600px) rotateY(0deg)',transformOrigin:origin,opacity:1}
+ ],{duration:280,easing:'cubic-bezier(.2,.65,.3,1)'});
+ opposite?.animate([{opacity:.6},{opacity:1}],{duration:200,easing:'ease-out'});
 }
 function goToPage(pageNumber){
  if(!totalPages)return;
