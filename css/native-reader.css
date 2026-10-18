@@ -95,3 +95,27 @@
  .reader-secondary-tools .zoom-controls{display:flex}
 }
 @media (prefers-reduced-motion:reduce){.mobile-toc.attention .mobile-toc-trigger,.mobile-toc.attention::after{animation:none}}
+
+/* Welcome is visible immediately, before the catalogue or PDF renderer loads. */
+.welcome[hidden]{display:none}
+.is-welcome .native-pdf-shell{display:none}
+.welcome{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:clamp(28px,6vw,88px) clamp(20px,5vw,72px);background:radial-gradient(ellipse at 90% 0,#e8eff7 0,transparent 55%),#f5f7fa}
+.welcome-card{max-width:800px;margin:0 auto;padding:clamp(28px,4vw,56px);border:1px solid #e3e9f0;border-radius:24px;background:#fff;box-shadow:0 16px 56px #233d5810}
+.welcome-eyebrow{display:block;margin-bottom:22px;color:#59748f;font-size:10px;font-weight:700;letter-spacing:.16em;line-height:1.6}
+.welcome h2{max-width:620px;margin:0 0 28px;color:#203b55;font-size:clamp(24px,2.7vw,34px);font-weight:700;line-height:1.55;letter-spacing:-.045em;word-break:keep-all;overflow-wrap:anywhere}
+.welcome-body{color:#47596b;font-size:16px;line-height:1.95;word-break:keep-all;overflow-wrap:anywhere}
+.welcome-body p{margin:0 0 18px}
+.welcome-body .welcome-closing{margin:28px 0 0;color:#2e4e6b}
+.welcome-closing strong{font-weight:600}
+.welcome-copyright{margin-top:36px;padding-top:26px;border-top:1px solid #e8ecf0;color:#737b85;font-size:12px;line-height:1.9;word-break:keep-all;overflow-wrap:anywhere}
+.welcome-copyright h3{margin:0 0 12px;color:#626c77;font-size:13px;font-weight:600}
+.welcome-copyright p{margin:0 0 10px}
+.welcome-copyright p:last-child{margin-bottom:0}
+@media(max-width:760px),(max-width:1000px) and (pointer:coarse){
+ .welcome{padding:24px 16px 32px}
+ .welcome-card{padding:28px 23px;border-radius:18px}
+ .welcome-eyebrow{font-size:9px;margin-bottom:18px}
+ .welcome h2{font-size:25px;margin-bottom:24px}
+ .welcome-body{font-size:15px;line-height:1.9}
+ .welcome-copyright{margin-top:28px;padding-top:22px}
+}

@@ -83,7 +83,7 @@ async function loadBooks(){
    const btn=document.createElement('button');btn.className='chapter';btn.textContent=b.title;btn.onclick=()=>openBook(i);nav.appendChild(btn);
    const option=document.createElement('button'),number=document.createElement('span'),label=document.createElement('span');option.type='button';option.className='mobile-toc-option';option.setAttribute('role','option');option.setAttribute('aria-selected','false');number.className='mobile-toc-number';number.textContent=String(i+1).padStart(2,'0');label.className='mobile-toc-title';label.textContent=b.title;option.append(number,label);option.onclick=()=>{setMobileTocOpen(false);openBook(i)};mobileList.appendChild(option);
   });
-  openBook(0);showMobileTocHint();
+  $('message').hidden=true;showMobileTocHint();
  }catch(e){info('도서 목록을 불러오지 못했습니다: '+e.message,true)}
 }
 
@@ -225,6 +225,7 @@ async function openBook(index,options={}){
  document.querySelectorAll('.chapter').forEach((button,i)=>{button.classList.toggle('active',i===index);button.setAttribute('aria-current',i===index?'true':'false')});
  document.querySelectorAll('.mobile-toc-option').forEach((button,i)=>{const active=i===index;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active))});
  setMobileTocOpen(false);
+ $('welcome').hidden=true;$('viewer').classList.remove('is-welcome');
  $('sidebar').classList.remove('open');syncMenu();
  currentBookIndex=index;currentBookUrl=url.href;currentPage=1;totalPages=0;zoomLevel=100;updatePageControls();
  // The native toolbar is replaced by the simpler site-owned page bar.
