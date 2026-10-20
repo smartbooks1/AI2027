@@ -184,3 +184,29 @@ button:focus-visible, input:focus-visible {
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 250px minmax(0, 1fr); }
 }
+
+/* Practice resources: the PC download stays disabled until the ZIP is ready. */
+.practice-download {
+  margin: 24px 12px 0;
+  padding-top: 18px;
+  border-top: 1px solid #e4e9f0;
+}
+.practice-download-button {
+  width: 100%;
+  padding: 11px 10px;
+  border: 1px solid #dce3eb;
+  border-radius: 9px;
+  background: #f4f6f9;
+  color: #69788a;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  cursor: default;
+}
+.practice-mobile-note {
+  margin: 0 0 20px;
+  color: #737b85;
+  font-size: 12px;
+  line-height: 1.9;
+  word-break: keep-all;
+}
