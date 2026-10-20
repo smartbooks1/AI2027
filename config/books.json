@@ -15,15 +15,15 @@
   "titleRules": [
     {
       "contains": "Sample1",
-      "title": "7장_일잘러를 위한 문서·업무 생산성 특화형 AI(테스트)"
+      "title": "특별부록_오픈웨이트모델(테스트)"
     },
     {
       "contains": "Sample2",
-      "title": "8장_흩어진 도구를 이어붙이는 업무 자동화 연결형 AI(테스트)"
+      "title": "특별부록_음악/음성/동영상 AI(테스트)"
     },
     {
       "contains": "Sample3",
-      "title": "9장_이미지·음성/음악·영상 생성을 위한 미디어 특화형 AI(테스트)"
+      "title": "특별부록_실시간 X와 웹 정보에 강한 그록(테스트)"
     }
   ],
   "readerDefaults": {
