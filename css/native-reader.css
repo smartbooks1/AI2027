@@ -130,7 +130,7 @@
  .welcome-mobile,.welcome-mobile-title{display:block}
  .main.is-home .mobile-toc{display:none!important}
  .welcome-eyebrow{display:none}
- .welcome-heading{display:grid;grid-template-columns:clamp(102px,21cqi,132px) minmax(0,1fr);align-items:center;gap:20px}
+ .welcome-heading{display:grid;grid-template-columns:clamp(120px,21cqi,178px) minmax(0,1fr);align-items:center;gap:20px}
  .welcome-cover{display:block;width:100%;height:auto;border-radius:2px;box-shadow:0 4px 12px #203b551a}
  .welcome-heading-copy{min-width:0}
  .welcome h2{margin:0 0 10px;font-size:clamp(19px,5.8cqi,24px);line-height:1.4;letter-spacing:-.035em}
