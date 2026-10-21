@@ -150,10 +150,12 @@ function spreadRenderRatio(width,height){
  const screenRatio=Math.max(MIN_SPREAD_RENDER_RATIO,Math.min(window.devicePixelRatio||1,MAX_SPREAD_RENDER_RATIO));
  return Math.min(screenRatio,Math.sqrt(MAX_SPREAD_PAGE_PIXELS/(width*height)));
 }
+let pageTurnBusy=false;
 function renderNativePages(direction=0){
  cancelSpreadRendering();const token=spreadRenderToken,pages=$('nativePages');
- const animateTurn=direction&&twoPage&&!smallScreen()&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+ const animateTurn=direction&&!smallScreen()&&!window.matchMedia('(prefers-reduced-motion:reduce)').matches;
  const previous=animateTurn?pages.querySelector('.spread-stage:not([hidden])'):null;
+ pageTurnBusy=!!previous;
  if(previous)pages.replaceChildren(previous);else pages.replaceChildren();
  pages.classList.toggle('two-page',twoPage);
  pages.classList.toggle('page-fitted',fitMode==='page'&&zoomLevel===100);
@@ -190,22 +192,38 @@ async function renderPageView(container,token,direction=0){
   if(token!==spreadRenderToken||documentRef!==pdfDocument)return;
   spreadRenderTasks=[];
   if(direction){
-   stage.hidden=false;container.replaceChildren(stage);
-   animateSpreadTurn(stage,direction);
+   const previous=container.querySelector('.spread-stage:not([hidden])');
+   stage.hidden=false;
+   await animateSpreadTurn(container,previous,stage,direction);
+   if(token===spreadRenderToken)container.replaceChildren(stage);
   }
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
 }
-function animateSpreadTurn(stage,direction){
- // Animate existing canvases around the binding; no copies or extra PDF renders.
- const turning=stage.querySelector(direction>0?'.spread-left':'.spread-right');
- const opposite=stage.querySelector(direction>0?'.spread-right':'.spread-left');
- if(!turning)return;
- const origin=direction>0?'100% 50%':'0% 50%',angle=direction>0?72:-72;
- turning.animate([
-  {transform:'perspective(1600px) rotateY('+angle+'deg)',transformOrigin:origin,opacity:.4},
-  {transform:'perspective(1600px) rotateY(0deg)',transformOrigin:origin,opacity:1}
- ],{duration:280,easing:'cubic-bezier(.2,.65,.3,1)'});
- opposite?.animate([{opacity:.6},{opacity:1}],{duration:200,easing:'ease-out'});
+async function animateSpreadTurn(container,previous,stage,direction){
+ if(!previous)return;
+ // Keep the old spread above the rendered destination until the leaf reaches its edge.
+ const rect=previous.getBoundingClientRect(),surface=container.getBoundingClientRect();
+ previous.classList.add('spread-turn-overlay');
+ previous.style.left=(rect.left-surface.left+container.scrollLeft)+'px';
+ previous.style.top=(rect.top-surface.top+container.scrollTop)+'px';
+ previous.style.width=rect.width+'px';previous.style.height=rect.height+'px';
+ const outgoing=previous.querySelector(twoPage?(direction>0?'.spread-right':'.spread-left'):'.spread-single');
+ const incoming=stage.querySelector(twoPage?(direction>0?'.spread-left':'.spread-right'):'.spread-single');
+ const timing={duration:220,easing:'cubic-bezier(.35,0,.65,1)',fill:'forwards'};
+ const frames=(angle,origin)=>({transform:'perspective(1800px) rotateY('+angle+'deg)',transformOrigin:origin,filter:'brightness('+ (angle?'.72':'1') +')',boxShadow:angle?'0 12px 32px #0007':'0 7px 24px #0009'});
+ let arrival;
+ try{
+  if(incoming)incoming.style.visibility='hidden';
+  const origin=direction>0?'0% 50%':'100% 50%';
+  if(outgoing)await outgoing.animate([frames(0,origin),frames(direction>0?-90:90,origin)],timing).finished;
+  previous.remove();
+  if(incoming){
+   incoming.style.visibility='';
+   const arrivalOrigin=twoPage?(direction>0?'100% 50%':'0% 50%'):origin;
+   arrival=incoming.animate([frames(direction>0?90:-90,arrivalOrigin),frames(0,arrivalOrigin)],timing);
+   await arrival.finished;
+  }
+ }finally{previous.remove();if(incoming)incoming.style.visibility='';arrival?.cancel()}
 }
 function goToPage(pageNumber){
  if(!totalPages)return;
@@ -316,7 +334,22 @@ document.addEventListener('keydown',event=>{
  if(event.key==='ArrowRight')goToPage(nextPage());
 });
 const pageSurface=$('nativePages');
-let swipeStart=null,pinchState=null;
+let swipeStart=null,pinchState=null,mouseStart=null;
+pageSurface.addEventListener('pointerdown',event=>{
+ mouseStart=null;
+ if(smallScreen()||event.pointerType!=='mouse'||event.button!==0||zoomLevel!==100||pageTurnBusy)return;
+ const page=event.target.closest('.spread-page,.spread-blank');
+ if(page)mouseStart={page,x:event.clientX,y:event.clientY,id:event.pointerId};
+});
+pageSurface.addEventListener('pointerup',event=>{
+ const start=mouseStart;mouseStart=null;
+ if(!start||start.id!==event.pointerId||smallScreen()||pageTurnBusy||zoomLevel!==100||event.button!==0)return;
+ if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>6||!start.page.contains(event.target))return;
+ const rect=start.page.getBoundingClientRect();
+ const backwards=twoPage?start.page.classList.contains('spread-left'):(event.clientX-rect.left)/rect.width<.35;
+ goToPage(backwards?previousPage():nextPage());
+});
+pageSurface.addEventListener('pointercancel',()=>{mouseStart=null});
 const touchDistance=touches=>Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);
 pageSurface.addEventListener('touchstart',event=>{
  if(!smallScreen())return;

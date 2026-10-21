@@ -152,3 +152,8 @@
  .welcome-details summary:focus-visible{outline:3px solid #a5c8fb;outline-offset:2px}
  .welcome-details p{margin:0 0 12px}
 }
+
+/* Outgoing paper stays aligned with the spread while the next pages are ready underneath. */
+.native-pages.pdfjs-pages{position:relative}
+.spread-turn-overlay{position:absolute;z-index:2;min-width:0;pointer-events:none}
+@media (hover:hover) and (pointer:fine){.spread-page,.spread-blank{cursor:pointer}}
