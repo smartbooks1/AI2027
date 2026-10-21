@@ -189,7 +189,7 @@ async function renderPageView(container,token,direction=0){
   });
   // Keep the finished spread visible while the next canvases render off screen.
   stage.hidden=!!direction;
-  if(direction)stage.classList.add('spread-pending');
+  if(direction){stage.classList.add('spread-pending');stage.style.visibility='hidden'}
   container.appendChild(stage);
   spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d',{alpha:false}),viewport:item.display,transform:[item.outputScale,0,0,item.outputScale,0,0],background:'#fff'}));
   await Promise.all(spreadRenderTasks.map(task=>task.promise));
@@ -199,7 +199,7 @@ async function renderPageView(container,token,direction=0){
    const previous=container.querySelector('.spread-stage:not([hidden])');
    stage.hidden=false;
    await animateSpreadTurn(container,previous,stage,direction);
-   if(token===spreadRenderToken){stage.classList.remove('spread-pending');container.replaceChildren(stage)}
+   if(token===spreadRenderToken){stage.style.visibility='';stage.classList.remove('spread-pending');container.replaceChildren(stage)}
   }
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
  finally{if(token===spreadRenderToken)pageTurnBusy=false}
@@ -209,6 +209,8 @@ async function animateSpreadTurn(container,previous,stage,direction){
  const spread=twoPage,oldPages=[...previous.children],newPages=[...stage.children];
  const first=oldPages[0],rect=first.getBoundingClientRect(),surface=container.getBoundingClientRect();
  const host=document.createElement('div');host.className='book-turn-layer';host.setAttribute('aria-hidden','true');
+ // Do not show a second static copy before the actual paper movement starts.
+ host.style.visibility='hidden';
  host.style.left=(rect.left-surface.left+container.scrollLeft)+'px';host.style.top=(rect.top-surface.top+container.scrollTop)+'px';
  host.style.width=(rect.width*(spread?2:1))+'px';host.style.height=rect.height+'px';
  const ordered=direction>0?[...oldPages,...newPages]:[...newPages,...oldPages];
@@ -244,6 +246,7 @@ async function animateSpreadTurn(container,previous,stage,direction){
      requestAnimationFrame(()=>requestAnimationFrame(()=>{
       if(done)return;
       if(direction>0)flip.flipNext('bottom');else flip.flipPrev('bottom');
+      host.style.visibility='';
      }));
     });
     flip.loadFromHTML(leaves);
