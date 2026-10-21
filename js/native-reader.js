@@ -207,21 +207,29 @@ async function renderPageView(container,token,direction=0){
 async function animateSpreadTurn(container,previous,stage,direction){
  if(!previous||!window.St?.PageFlip)return;
  const spread=twoPage,oldPages=[...previous.children],newPages=[...stage.children];
+ // Portrait flipPrev slides its back face. Mirror the same curl used by flipNext instead.
+ const mirrored=!spread&&direction<0,turnDirection=mirrored?1:direction;
  const first=oldPages[0],rect=first.getBoundingClientRect(),surface=container.getBoundingClientRect();
  const host=document.createElement('div');host.className='book-turn-layer';host.setAttribute('aria-hidden','true');
  // Do not show a second static copy before the actual paper movement starts.
  host.style.visibility='hidden';
  host.style.left=(rect.left-surface.left+container.scrollLeft)+'px';host.style.top=(rect.top-surface.top+container.scrollTop)+'px';
  host.style.width=(rect.width*(spread?2:1))+'px';host.style.height=rect.height+'px';
- const ordered=direction>0?[...oldPages,...newPages]:[...newPages,...oldPages];
+ if(mirrored)host.style.transform='scaleX(-1) translateZ(0)';
+ const images=[];
+ const ordered=turnDirection>0?[...oldPages,...newPages]:[...newPages,...oldPages];
  const leaves=ordered.map(source=>{
   const leaf=document.createElement('div');leaf.className='book-turn-leaf';leaf.dataset.density='soft';
   if(source instanceof HTMLCanvasElement){
-   const copy=document.createElement('canvas');copy.width=source.width;copy.height=source.height;
-   copy.getContext('2d').drawImage(source,0,0);leaf.appendChild(copy);
+   // The engine clones portrait leaves; images retain their pixels when cloned, canvases do not.
+   const image=document.createElement('img');image.alt='';image.src=source.toDataURL('image/png');
+   if(mirrored)image.style.transform='scaleX(-1)';
+   images.push(image);leaf.appendChild(image);
   }
   host.appendChild(leaf);return leaf;
  });
+ await Promise.all(images.map(image=>image.decode()));
+ if(!previous.isConnected||!stage.isConnected)return;
  container.appendChild(host);
  let flip,timer,finish,started=false;
  try{
@@ -233,7 +241,7 @@ async function animateSpreadTurn(container,previous,stage,direction){
    try{
     flip=new window.St.PageFlip(host,{
      width:rect.width,height:rect.height,size:'fixed',autoSize:false,
-     usePortrait:!spread,startPage:direction>0?0:(spread?2:1),showCover:false,
+     usePortrait:!spread,startPage:turnDirection>0?0:(spread?2:1),showCover:false,
      drawShadow:true,maxShadowOpacity:.35,flippingTime:650,
      // Input is handled by our reader; corner checks would block portrait flipPrev().
      useMouseEvents:false,showPageCorners:false,disableFlipByClick:false,
@@ -246,7 +254,7 @@ async function animateSpreadTurn(container,previous,stage,direction){
      // Keep the original spread underneath until the overlay has painted.
      requestAnimationFrame(()=>requestAnimationFrame(()=>{
       if(done)return;
-      if(direction>0)flip.flipNext('bottom');else flip.flipPrev('bottom');
+      if(turnDirection>0)flip.flipNext('bottom');else flip.flipPrev('bottom');
       host.style.visibility='';
      }));
     });
