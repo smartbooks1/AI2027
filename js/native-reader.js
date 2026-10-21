@@ -198,32 +198,61 @@ async function renderPageView(container,token,direction=0){
    if(token===spreadRenderToken)container.replaceChildren(stage);
   }
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
+ finally{if(token===spreadRenderToken)pageTurnBusy=false}
+}
+function animateCurvedLeaf(container,page,direction,arriving,spread){
+ if(!page)return Promise.resolve();
+ const rect=page.getBoundingClientRect(),surface=container.getBoundingClientRect();
+ const layer=document.createElement('canvas'),ratio=Math.min(window.devicePixelRatio||1,2);
+ layer.className='page-curl-layer';layer.style.width=container.clientWidth+'px';layer.style.height=container.clientHeight+'px';
+ layer.width=Math.round(container.clientWidth*ratio);layer.height=Math.round(container.clientHeight*ratio);
+ layer.style.left=container.scrollLeft+'px';layer.style.top=container.scrollTop+'px';container.appendChild(layer);
+ const ctx=layer.getContext('2d');ctx.scale(ratio,ratio);
+ const fromRight=arriving&&spread?direction<0:direction>0;
+ const hinge=rect.left-surface.left+(fromRight?0:rect.width),sign=fromRight?1:-1;
+ const top=rect.top-surface.top,height=rect.height,width=rect.width,strips=80,step=width/strips;
+ page.style.visibility='hidden';
+ return new Promise(resolve=>{
+  let start;
+  function frame(now){
+   if(!layer.isConnected){page.style.visibility='';resolve();return}
+   start??=now;
+   const progress=Math.min(1,(now-start)/260),ease=progress*progress*(3-2*progress);
+   const fold=arriving?1-ease:ease,angle=fold*Math.PI/2,curl=Math.sin(fold*Math.PI)*.65;
+   ctx.clearRect(0,0,layer.width/ratio,layer.height/ratio);
+   let x=0,z=0;
+   for(let i=0;i<strips;i++){
+    const u=(i+.5)/strips,theta=angle+curl*(u-.5);
+    const nx=x+Math.cos(theta)*step,nz=z+Math.sin(theta)*step;
+    const depth=1+z/1800,nextDepth=1+nz/1800;
+    const left=hinge+sign*x/depth,right=hinge+sign*nx/nextDepth;
+    const drawTop=top+height/2-height/(2*depth),drawHeight=height/depth;
+    const dx=Math.min(left,right),dw=Math.abs(right-left)+.65,sourceIndex=fromRight?i:strips-1-i;
+    if(page instanceof HTMLCanvasElement)ctx.drawImage(page,sourceIndex*page.width/strips,0,page.width/strips,page.height,dx,drawTop,dw,drawHeight);
+    else{ctx.fillStyle='#f8f9f7';ctx.fillRect(dx,drawTop,dw,drawHeight)}
+    ctx.fillStyle='rgba(25,30,40,'+(Math.abs(Math.sin(theta))*.24+curl*u*.12)+')';ctx.fillRect(dx,drawTop,dw,drawHeight);
+    x=nx;z=nz;
+   }
+   if(progress<1)requestAnimationFrame(frame);
+   else{layer.remove();page.style.visibility='';resolve()}
+  }
+  requestAnimationFrame(frame);
+ });
 }
 async function animateSpreadTurn(container,previous,stage,direction){
  if(!previous)return;
- // Keep the old spread above the rendered destination until the leaf reaches its edge.
- const rect=previous.getBoundingClientRect(),surface=container.getBoundingClientRect();
+ const spread=twoPage,rect=previous.getBoundingClientRect(),surface=container.getBoundingClientRect();
  previous.classList.add('spread-turn-overlay');
- previous.style.left=(rect.left-surface.left+container.scrollLeft)+'px';
- previous.style.top=(rect.top-surface.top+container.scrollTop)+'px';
+ previous.style.left=(rect.left-surface.left+container.scrollLeft)+'px';previous.style.top=(rect.top-surface.top+container.scrollTop)+'px';
  previous.style.width=rect.width+'px';previous.style.height=rect.height+'px';
- const outgoing=previous.querySelector(twoPage?(direction>0?'.spread-right':'.spread-left'):'.spread-single');
- const incoming=stage.querySelector(twoPage?(direction>0?'.spread-left':'.spread-right'):'.spread-single');
- const timing={duration:220,easing:'cubic-bezier(.35,0,.65,1)',fill:'forwards'};
- const frames=(angle,origin)=>({transform:'perspective(1800px) rotateY('+angle+'deg)',transformOrigin:origin,filter:'brightness('+ (angle?'.72':'1') +')',boxShadow:angle?'0 12px 32px #0007':'0 7px 24px #0009'});
- let arrival;
+ const outgoing=previous.querySelector(spread?(direction>0?'.spread-right':'.spread-left'):'.spread-single');
+ const incoming=stage.querySelector(spread?(direction>0?'.spread-left':'.spread-right'):'.spread-single');
  try{
   if(incoming)incoming.style.visibility='hidden';
-  const origin=direction>0?'0% 50%':'100% 50%';
-  if(outgoing)await outgoing.animate([frames(0,origin),frames(direction>0?-90:90,origin)],timing).finished;
+  await animateCurvedLeaf(container,outgoing,direction,false,spread);
   previous.remove();
-  if(incoming){
-   incoming.style.visibility='';
-   const arrivalOrigin=twoPage?(direction>0?'100% 50%':'0% 50%'):origin;
-   arrival=incoming.animate([frames(direction>0?90:-90,arrivalOrigin),frames(0,arrivalOrigin)],timing);
-   await arrival.finished;
-  }
- }finally{previous.remove();if(incoming)incoming.style.visibility='';arrival?.cancel()}
+  if(stage.isConnected)await animateCurvedLeaf(container,incoming,direction,true,spread);
+ }finally{previous.remove();if(incoming)incoming.style.visibility=''}
 }
 function goToPage(pageNumber){
  if(!totalPages)return;

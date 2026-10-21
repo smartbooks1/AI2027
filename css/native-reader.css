@@ -157,3 +157,5 @@
 .native-pages.pdfjs-pages{position:relative}
 .spread-turn-overlay{position:absolute;z-index:2;min-width:0;pointer-events:none}
 @media (hover:hover) and (pointer:fine){.spread-page,.spread-blank{cursor:pointer}}
+
+.page-curl-layer{position:absolute;z-index:3;pointer-events:none}
