@@ -172,7 +172,7 @@ async function renderPageView(container,token,direction=0){
    if(token!==spreadRenderToken||documentRef!==pdfDocument)return;
   const real=loaded.filter(Boolean),base=real.map(page=>page.getViewport({scale:1}));
   const maxWidth=Math.max(...base.map(view=>view.width)),maxHeight=Math.max(...base.map(view=>view.height));
-   const padding=fitMode==='page'?10:Math.min(28,Math.max(12,container.clientWidth*.02)),gap=twoPage?3:0,slotCount=twoPage?2:1;
+   const padding=fitMode==='page'?10:Math.min(28,Math.max(12,container.clientWidth*.02)),gap=0,slotCount=twoPage?2:1;
    const widthScale=Math.max(.1,(container.clientWidth-padding*2-gap*(slotCount-1))/(maxWidth*slotCount));
   const heightScale=Math.max(.1,(container.clientHeight-padding*2)/maxHeight);
   const fitScale=fitMode==='width'?widthScale:Math.min(widthScale,heightScale);
@@ -188,7 +188,9 @@ async function renderPageView(container,token,direction=0){
    const canvas=document.createElement('canvas');canvas.className='spread-page '+sideClass;canvas.width=Math.ceil(displayWidth*outputScale);canvas.height=Math.ceil(displayHeight*outputScale);canvas.style.width=displayWidth+'px';canvas.style.height=displayHeight+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,display,outputScale});
   });
   // Keep the finished spread visible while the next canvases render off screen.
-  stage.hidden=!!direction;container.appendChild(stage);
+  stage.hidden=!!direction;
+  if(direction)stage.classList.add('spread-pending');
+  container.appendChild(stage);
   spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d',{alpha:false}),viewport:item.display,transform:[item.outputScale,0,0,item.outputScale,0,0],background:'#fff'}));
   await Promise.all(spreadRenderTasks.map(task=>task.promise));
   if(token!==spreadRenderToken||documentRef!==pdfDocument)return;
@@ -197,7 +199,7 @@ async function renderPageView(container,token,direction=0){
    const previous=container.querySelector('.spread-stage:not([hidden])');
    stage.hidden=false;
    await animateSpreadTurn(container,previous,stage,direction);
-   if(token===spreadRenderToken)container.replaceChildren(stage);
+   if(token===spreadRenderToken){stage.classList.remove('spread-pending');container.replaceChildren(stage)}
   }
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
  finally{if(token===spreadRenderToken)pageTurnBusy=false}
