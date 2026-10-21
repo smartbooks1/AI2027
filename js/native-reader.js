@@ -143,7 +143,9 @@ function visiblePages(){
  if(currentPage===1)return [null,1];
  return [currentPage,currentPage+1<=totalPages?currentPage+1:null];
 }
+let cancelPageTurn=null;
 function cancelSpreadRendering(){
+ cancelPageTurn?.();
  spreadRenderToken++;for(const task of spreadRenderTasks){try{task.cancel()}catch{}}spreadRenderTasks=[];
 }
 function spreadRenderRatio(width,height){
@@ -200,59 +202,52 @@ async function renderPageView(container,token,direction=0){
  }catch(error){if(error?.name!=='RenderingCancelledException'&&token===spreadRenderToken)info('두 쪽 보기를 표시하지 못했습니다: '+error.message,true)}
  finally{if(token===spreadRenderToken)pageTurnBusy=false}
 }
-function animateCurvedLeaf(container,page,direction,arriving,spread){
- if(!page)return Promise.resolve();
- const rect=page.getBoundingClientRect(),surface=container.getBoundingClientRect();
- const layer=document.createElement('canvas'),ratio=Math.min(window.devicePixelRatio||1,2);
- layer.className='page-curl-layer';layer.style.width=container.clientWidth+'px';layer.style.height=container.clientHeight+'px';
- layer.width=Math.round(container.clientWidth*ratio);layer.height=Math.round(container.clientHeight*ratio);
- layer.style.left=container.scrollLeft+'px';layer.style.top=container.scrollTop+'px';container.appendChild(layer);
- const ctx=layer.getContext('2d');ctx.scale(ratio,ratio);
- const fromRight=arriving&&spread?direction<0:direction>0;
- const hinge=rect.left-surface.left+(fromRight?0:rect.width),sign=fromRight?1:-1;
- const top=rect.top-surface.top,height=rect.height,width=rect.width,strips=80,step=width/strips;
- page.style.visibility='hidden';
- return new Promise(resolve=>{
-  let start;
-  function frame(now){
-   if(!layer.isConnected){page.style.visibility='';resolve();return}
-   start??=now;
-   const progress=Math.min(1,(now-start)/260),ease=progress*progress*(3-2*progress);
-   const fold=arriving?1-ease:ease,angle=fold*Math.PI/2,curl=Math.sin(fold*Math.PI)*.65;
-   ctx.clearRect(0,0,layer.width/ratio,layer.height/ratio);
-   let x=0,z=0;
-   for(let i=0;i<strips;i++){
-    const u=(i+.5)/strips,theta=angle+curl*(u-.5);
-    const nx=x+Math.cos(theta)*step,nz=z+Math.sin(theta)*step;
-    const depth=1+z/1800,nextDepth=1+nz/1800;
-    const left=hinge+sign*x/depth,right=hinge+sign*nx/nextDepth;
-    const drawTop=top+height/2-height/(2*depth),drawHeight=height/depth;
-    const dx=Math.min(left,right),dw=Math.abs(right-left)+.65,sourceIndex=fromRight?i:strips-1-i;
-    if(page instanceof HTMLCanvasElement)ctx.drawImage(page,sourceIndex*page.width/strips,0,page.width/strips,page.height,dx,drawTop,dw,drawHeight);
-    else{ctx.fillStyle='#f8f9f7';ctx.fillRect(dx,drawTop,dw,drawHeight)}
-    ctx.fillStyle='rgba(25,30,40,'+(Math.abs(Math.sin(theta))*.24+curl*u*.12)+')';ctx.fillRect(dx,drawTop,dw,drawHeight);
-    x=nx;z=nz;
-   }
-   if(progress<1)requestAnimationFrame(frame);
-   else{layer.remove();page.style.visibility='';resolve()}
-  }
-  requestAnimationFrame(frame);
- });
-}
 async function animateSpreadTurn(container,previous,stage,direction){
- if(!previous)return;
- const spread=twoPage,rect=previous.getBoundingClientRect(),surface=container.getBoundingClientRect();
- previous.classList.add('spread-turn-overlay');
- previous.style.left=(rect.left-surface.left+container.scrollLeft)+'px';previous.style.top=(rect.top-surface.top+container.scrollTop)+'px';
- previous.style.width=rect.width+'px';previous.style.height=rect.height+'px';
- const outgoing=previous.querySelector(spread?(direction>0?'.spread-right':'.spread-left'):'.spread-single');
- const incoming=stage.querySelector(spread?(direction>0?'.spread-left':'.spread-right'):'.spread-single');
+ if(!previous||!window.St?.PageFlip)return;
+ const spread=twoPage,oldPages=[...previous.children],newPages=[...stage.children];
+ const first=oldPages[0],rect=first.getBoundingClientRect(),surface=container.getBoundingClientRect();
+ const host=document.createElement('div');host.className='book-turn-layer';host.setAttribute('aria-hidden','true');
+ host.style.left=(rect.left-surface.left+container.scrollLeft)+'px';host.style.top=(rect.top-surface.top+container.scrollTop)+'px';
+ host.style.width=(rect.width*(spread?2:1))+'px';host.style.height=rect.height+'px';
+ const ordered=direction>0?[...oldPages,...newPages]:[...newPages,...oldPages];
+ const leaves=ordered.map(source=>{
+  const leaf=document.createElement('div');leaf.className='book-turn-leaf';leaf.dataset.density='soft';
+  if(source instanceof HTMLCanvasElement){
+   const copy=document.createElement('canvas');copy.width=source.width;copy.height=source.height;
+   copy.getContext('2d').drawImage(source,0,0);leaf.appendChild(copy);
+  }
+  host.appendChild(leaf);return leaf;
+ });
+ container.appendChild(host);
+ let flip,timer,finish,started=false;
  try{
-  if(incoming)incoming.style.visibility='hidden';
-  await animateCurvedLeaf(container,outgoing,direction,false,spread);
-  previous.remove();
-  if(stage.isConnected)await animateCurvedLeaf(container,incoming,direction,true,spread);
- }finally{previous.remove();if(incoming)incoming.style.visibility=''}
+  await new Promise((resolve,reject)=>{
+   let done=false;
+   finish=()=>{if(done)return;done=true;clearTimeout(timer);resolve()};
+   cancelPageTurn=finish;
+   timer=setTimeout(finish,2200);
+   try{
+    flip=new window.St.PageFlip(host,{
+     width:rect.width,height:rect.height,size:'fixed',autoSize:false,
+     usePortrait:!spread,startPage:direction>0?0:(spread?2:1),showCover:false,
+     drawShadow:true,maxShadowOpacity:.35,flippingTime:650,
+     useMouseEvents:false,showPageCorners:false,disableFlipByClick:true,
+     mobileScrollSupport:false
+    });
+    flip.on('changeState',event=>{if(event.data==='flipping')started=true;else if(started&&event.data==='read')finish()});
+    flip.on('init',()=>{
+     if(done)return;
+     previous.style.visibility='hidden';stage.style.visibility='hidden';
+     if(direction>0)flip.flipNext('bottom');else flip.flipPrev('bottom');
+    });
+    flip.loadFromHTML(leaves);
+   }catch(error){clearTimeout(timer);reject(error)}
+  });
+ }finally{
+  if(cancelPageTurn===finish)cancelPageTurn=null;
+  clearTimeout(timer);flip?.destroy();host.remove();
+  previous.style.visibility='';stage.style.visibility='';
+ }
 }
 function goToPage(pageNumber){
  if(!totalPages)return;
