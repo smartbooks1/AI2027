@@ -13,6 +13,18 @@ const BOOKMARK_KEY='ai2027:manual-bookmark:v1';
 const MIN_SPREAD_RENDER_RATIO=2;
 const MAX_SPREAD_RENDER_RATIO=3;
 const MAX_SPREAD_PAGE_PIXELS=12000000;
+let coverImagePromise=null;
+async function drawBlankCover(canvas,width,height,ratio){
+ if(!coverImagePromise){
+  const image=new Image();image.src=new URL('./cover_image.png',location.href).href;
+  coverImagePromise=image.decode().then(()=>image).catch(()=>{coverImagePromise=null;return null});
+ }
+ const image=await coverImagePromise;if(!image)return;
+ // CSS uses 96 pixels per inch: keep the requested 50 mm display width.
+ const imageWidth=50*96/25.4,imageHeight=imageWidth*image.naturalHeight/image.naturalWidth;
+ const context=canvas.getContext('2d');context.save();context.scale(ratio,ratio);
+ context.drawImage(image,(width-imageWidth)/2,(height-imageHeight)/2,imageWidth,imageHeight);context.restore();
+}
 const info=(text,error=false)=>{$('message').textContent=text;$('message').className='message'+(error?' error':'');$('message').hidden=false};
 async function discover(){
  const resp=await fetch('https://api.github.com/repos/'+ROOT+'/git/trees/main?recursive=1',{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});
@@ -213,10 +225,21 @@ async function renderPageView(container,token,direction=0){
   const scale=fitScale*(zoomLevel/100);
   const reference=real[0].getViewport({scale}),referenceWidth=Math.max(1,Math.round(reference.width)),referenceHeight=Math.max(1,Math.round(reference.height));
   const stage=document.createElement('div');stage.className='spread-stage';stage.style.setProperty('--spread-padding',padding+'px');
-  const renderItems=[];
+  const renderItems=[],blankRenders=[];
   loaded.forEach((page,index)=>{
    const sideClass=twoPage?(index===0?'spread-left':'spread-right'):'spread-single';
-   if(!page){const blank=document.createElement('div');blank.className='spread-blank '+sideClass;blank.setAttribute('aria-label','빈 페이지');blank.style.width=referenceWidth+'px';blank.style.height=referenceHeight+'px';stage.appendChild(blank);return}
+   if(!page){
+    const blank=document.createElement('canvas'),ratio=spreadRenderRatio(referenceWidth,referenceHeight);
+    blank.className='spread-blank '+sideClass;blank.setAttribute('aria-label','빈 페이지');
+    blank.width=Math.ceil(referenceWidth*ratio);blank.height=Math.ceil(referenceHeight*ratio);
+    blank.style.width=referenceWidth+'px';blank.style.height=referenceHeight+'px';
+    const context=blank.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,blank.width,blank.height);
+    if(index===0&&slots[1]===1){
+     blank.setAttribute('aria-label','표지 이미지');
+     blankRenders.push(drawBlankCover(blank,referenceWidth,referenceHeight,ratio));
+    }
+    stage.appendChild(blank);return;
+   }
    const display=page.getViewport({scale}),displayWidth=Math.max(1,Math.round(display.width)),displayHeight=Math.max(1,Math.round(display.height));
    const outputScale=spreadRenderRatio(displayWidth,displayHeight);
    const canvas=document.createElement('canvas');canvas.className='spread-page '+sideClass;canvas.width=Math.ceil(displayWidth*outputScale);canvas.height=Math.ceil(displayHeight*outputScale);canvas.style.width=displayWidth+'px';canvas.style.height=displayHeight+'px';canvas.setAttribute('aria-label',slots[index]+'쪽');stage.appendChild(canvas);renderItems.push({page,canvas,display,outputScale});
@@ -226,7 +249,7 @@ async function renderPageView(container,token,direction=0){
   if(direction){stage.classList.add('spread-pending');stage.style.visibility='hidden'}
   container.appendChild(stage);
   spreadRenderTasks=renderItems.map(item=>item.page.render({canvasContext:item.canvas.getContext('2d',{alpha:false}),viewport:item.display,transform:[item.outputScale,0,0,item.outputScale,0,0],background:'#fff'}));
-  await Promise.all(spreadRenderTasks.map(task=>task.promise));
+  await Promise.all([...spreadRenderTasks.map(task=>task.promise),...blankRenders]);
   if(token!==spreadRenderToken||documentRef!==pdfDocument)return;
   spreadRenderTasks=[];
   if(direction){
