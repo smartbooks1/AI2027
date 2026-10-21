@@ -235,7 +235,8 @@ async function animateSpreadTurn(container,previous,stage,direction){
      width:rect.width,height:rect.height,size:'fixed',autoSize:false,
      usePortrait:!spread,startPage:direction>0?0:(spread?2:1),showCover:false,
      drawShadow:true,maxShadowOpacity:.35,flippingTime:650,
-     useMouseEvents:false,showPageCorners:false,disableFlipByClick:true,
+     // Input is handled by our reader; corner checks would block portrait flipPrev().
+     useMouseEvents:false,showPageCorners:false,disableFlipByClick:false,
      mobileScrollSupport:false
     });
     flip.on('changeState',event=>{if(event.data==='flipping')started=true;else if(started&&event.data==='read')finish()});
