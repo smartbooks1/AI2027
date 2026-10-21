@@ -157,6 +157,6 @@
 .native-pages.pdfjs-pages{position:relative}
 @media (hover:hover) and (pointer:fine){.spread-page,.spread-blank{cursor:pointer}}
 
- .book-turn-layer{position:absolute;z-index:3;pointer-events:none;overflow:hidden}
+.native-pages .book-turn-layer{position:absolute;z-index:3;pointer-events:none;overflow:hidden}
 .book-turn-leaf{background:#fff;overflow:hidden}
 .book-turn-leaf canvas{display:block;width:100%;height:100%}

@@ -237,8 +237,12 @@ async function animateSpreadTurn(container,previous,stage,direction){
     flip.on('changeState',event=>{if(event.data==='flipping')started=true;else if(started&&event.data==='read')finish()});
     flip.on('init',()=>{
      if(done)return;
-     previous.style.visibility='hidden';stage.style.visibility='hidden';
-     if(direction>0)flip.flipNext('bottom');else flip.flipPrev('bottom');
+     stage.style.visibility='hidden';
+     // Keep the original spread underneath until the overlay has painted.
+     requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(done)return;
+      if(direction>0)flip.flipNext('bottom');else flip.flipPrev('bottom');
+     }));
     });
     flip.loadFromHTML(leaves);
    }catch(error){clearTimeout(timer);reject(error)}
