@@ -14,7 +14,7 @@ const MIN_SPREAD_RENDER_RATIO=2;
 const MAX_SPREAD_RENDER_RATIO=3;
 const MAX_SPREAD_PAGE_PIXELS=12000000;
 let coverImagePromise=null;
-async function drawBlankCover(canvas,width,height,ratio){
+async function drawBlankCover(canvas,width,height,ratio,mirrored=false){
  if(!coverImagePromise){
   // Re-fetch on each visit; reuse the decoded image only within this reader session.
   coverImagePromise=(async()=>{
@@ -29,6 +29,7 @@ async function drawBlankCover(canvas,width,height,ratio){
  // CSS uses 96 pixels per inch: keep the requested 50 mm display width.
  const imageWidth=50*96/25.4,imageHeight=imageWidth*image.naturalHeight/image.naturalWidth;
  const context=canvas.getContext('2d');context.save();context.scale(ratio,ratio);
+ if(mirrored){context.translate(width,0);context.scale(-1,1)}
  context.drawImage(image,(width-imageWidth)/2,(height-imageHeight)/2,imageWidth,imageHeight);context.restore();
 }
 const info=(text,error=false)=>{$('message').textContent=text;$('message').className='message'+(error?' error':'');$('message').hidden=false};
@@ -242,7 +243,7 @@ async function renderPageView(container,token,direction=0){
     const context=blank.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,blank.width,blank.height);
     if((index===0&&slots[1]===1)||(index===1&&slots[0]===totalPages)){
      blank.setAttribute('aria-label','표지 이미지');
-     blankRenders.push(drawBlankCover(blank,referenceWidth,referenceHeight,ratio));
+     blankRenders.push(drawBlankCover(blank,referenceWidth,referenceHeight,ratio,index===0));
     }
     stage.appendChild(blank);return;
    }
