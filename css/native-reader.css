@@ -24,6 +24,7 @@
 .mobile-header,.mobile-page-jumps,.mobile-primary-tools{display:none}
 #mobileMore{display:none}
 .reader-secondary-tools{display:contents}
+.reader-action-tools{display:contents}
 .native-pages{display:flex;flex:1;min-width:0;min-height:0;background:#252525}
 .native-pages.pdfjs-pages{display:block;overflow:auto;overscroll-behavior:none}.native-pages.page-fitted{overflow:hidden}
 .spread-stage{display:flex;align-items:flex-start;justify-content:center;gap:0;width:max-content;min-width:100%;min-height:100%;padding:var(--spread-padding,24px);box-sizing:border-box}
@@ -64,7 +65,10 @@
  .reader-secondary-tools .mobile-page-jumps{display:flex}
  .mobile-more{display:grid!important;place-items:center;width:34px!important;height:34px!important;border:1px solid #ffffff1c!important;border-radius:10px!important;background:#1118274d!important;color:#d6dce5!important}.mobile-more[aria-expanded="true"]{background:#e9f3ff!important;color:#173c63!important}
  .reader-secondary-tools .focus-tool span{display:block}.focus-tool{grid-template-rows:17px 10px;min-width:48px;padding:2px 7px 1px!important}
- .reader-secondary-tools .bookmark-controls{display:flex;flex-basis:100%;justify-content:center}
+ .reader-secondary-tools .reader-action-tools{display:flex;flex-basis:100%;align-items:flex-start;justify-content:flex-end;gap:6px}
+ .reader-action-tools .focus-controls,.reader-action-tools .download-controls{flex:none}
+ .reader-secondary-tools .bookmark-controls{display:flex;flex:1 1 auto;min-width:0;flex-wrap:wrap;justify-content:center}
+ .reader-secondary-tools #bookmarkGo span,.reader-secondary-tools #bookmarkDelete span{display:none}
  .reader-secondary-tools .bookmark-tool span{display:block}
  .mobile-primary-tools{display:flex;align-items:center;gap:5px}
  .mobile-primary-tools .reader-tool-group{height:32px;padding:2px;border-radius:10px}
