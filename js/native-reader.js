@@ -388,7 +388,7 @@ pageSurface.addEventListener('pointerup',event=>{
  if(!start||start.id!==event.pointerId||smallScreen()||pageTurnBusy||zoomLevel!==100||event.button!==0)return;
  if(Math.hypot(event.clientX-start.x,event.clientY-start.y)>6||!start.page.contains(event.target))return;
  const rect=start.page.getBoundingClientRect();
- const backwards=twoPage?start.page.classList.contains('spread-left'):(event.clientX-rect.left)/rect.width<.35;
+ const backwards=twoPage?start.page.classList.contains('spread-left'):(event.clientX-rect.left)/rect.width<.5;
  goToPage(backwards?previousPage():nextPage());
 });
 pageSurface.addEventListener('pointercancel',()=>{mouseStart=null});
