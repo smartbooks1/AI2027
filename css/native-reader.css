@@ -126,7 +126,7 @@
 @media(max-width:760px),(max-width:1000px) and (pointer:coarse){
  .welcome{padding:32px 24px 40px;background:#fff}
  .welcome-card{max-width:560px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent}
- .welcome-desktop-title,.welcome-desktop,.welcome-card>.welcome-copyright{display:none}
+ .welcome-desktop-title,.welcome-desktop{display:none}
  .welcome-mobile,.welcome-mobile-title{display:block}
  .main.is-home .mobile-toc{display:none!important}
  .welcome-eyebrow{display:none}
@@ -144,13 +144,6 @@
  .welcome-resource span:first-child{min-width:0;overflow-wrap:anywhere;word-break:keep-all}
  .welcome-resource span:last-child{flex:none;color:#7b8fa2}
  .welcome-resource:hover{background:#f5f8fb}
- .welcome-details{border-bottom:1px solid #e8ecf0;color:#737b85;font-size:12px;line-height:1.9;word-break:keep-all;overflow-wrap:anywhere}
- .welcome-details summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:12px 0;list-style:none;cursor:pointer;color:#626c77;font-size:13px;font-weight:500}
- .welcome-details summary::-webkit-details-marker{display:none}
- .welcome-details summary::after{content:'+';font-size:18px;font-weight:400}
- .welcome-details[open] summary::after{content:'\2212'}
- .welcome-details summary:focus-visible{outline:3px solid #a5c8fb;outline-offset:2px}
- .welcome-details p{margin:0 0 12px}
 }
 
 /* Outgoing paper stays aligned with the spread while the next pages are ready underneath. */
