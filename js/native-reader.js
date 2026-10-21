@@ -16,8 +16,14 @@ const MAX_SPREAD_PAGE_PIXELS=12000000;
 let coverImagePromise=null;
 async function drawBlankCover(canvas,width,height,ratio){
  if(!coverImagePromise){
-  const image=new Image();image.src=new URL('./cover_image.png',location.href).href;
-  coverImagePromise=image.decode().then(()=>image).catch(()=>{coverImagePromise=null;return null});
+  // Re-fetch on each visit; reuse the decoded image only within this reader session.
+  coverImagePromise=(async()=>{
+   const response=await fetch(new URL('./cover_image.png',location.href),{cache:'no-store'});
+   if(!response.ok)throw Error('Cover image request failed ('+response.status+')');
+   const objectUrl=URL.createObjectURL(await response.blob());
+   try{const image=new Image();image.src=objectUrl;await image.decode();return image}
+   finally{URL.revokeObjectURL(objectUrl)}
+  })().catch(()=>{coverImagePromise=null;return null});
  }
  const image=await coverImagePromise;if(!image)return;
  // CSS uses 96 pixels per inch: keep the requested 50 mm display width.
