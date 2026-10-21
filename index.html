@@ -86,9 +86,12 @@
 <button id="focusMode" class="focus-tool" type="button" aria-label="집중 모드 시작" title="집중" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span>집중</span></button>
 </div>
 <div class="reader-tool-group bookmark-controls" role="group" aria-label="책갈피">
-<button id="bookmarkSave" class="bookmark-tool" type="button" aria-label="현재 페이지에 책갈피 설정" title="책갈피 설정" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M12 7v6M9 10h6"/></svg><span>책갈피 설정</span></button>
+<button id="bookmarkSave" class="bookmark-tool" type="button" aria-label="현재 페이지에 책갈피 설정" title="책갈피" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="M12 7v6M9 10h6"/></svg><span>책갈피</span></button>
 <button id="bookmarkGo" class="bookmark-tool" type="button" aria-label="책갈피로 이동" title="책갈피 이동" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12v18l-6-4-6 4V3Z"/><path d="M10 10h9M16 7l3 3-3 3"/></svg><span>책갈피 이동</span></button>
 <button id="bookmarkDelete" class="bookmark-tool" type="button" aria-label="책갈피 삭제" title="책갈피 삭제" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4V3Z"/><path d="m9 8 6 6M15 8l-6 6"/></svg><span>책갈피 삭제</span></button>
+</div>
+<div class="reader-tool-group download-controls" role="group" aria-label="원본 다운로드">
+<button id="downloadOriginal" class="bookmark-tool" type="button" aria-label="현재 PDF 원본 다운로드" title="원본 다운로드" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5"/></svg><span>원본 다운로드</span></button>
 </div>
 </div>
 <button id="mobileMore" class="mobile-more" type="button" aria-label="도구 더보기" title="더보기" aria-expanded="false" aria-controls="secondaryTools"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></button>
@@ -99,4 +102,4 @@
 </div>
 </section></main></div>
 <script src="./js/vendor/page-flip.browser.js?v=2.0.7"></script>
-<script type="module" src="./js/native-reader.js?v=20261021halfclick"></script></body></html>
+<script type="module" src="./js/native-reader.js?v=20261021download"></script></body></html>

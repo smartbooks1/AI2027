@@ -101,6 +101,7 @@ function updatePageControls(){
  $('singlePageMode').setAttribute('aria-pressed',String(!twoPage));$('twoPageMode').setAttribute('aria-pressed',String(twoPage));
  $('mobileSinglePageMode').setAttribute('aria-pressed',String(!twoPage));$('mobileTwoPageMode').setAttribute('aria-pressed',String(twoPage));
  updateBookmarkButtons();
+ $('downloadOriginal').disabled=!currentBookUrl||!totalPages||downloadInProgress;
 }
 function readBookmark(){
  try{const value=JSON.parse(localStorage.getItem(BOOKMARK_KEY));return value&&typeof value.file==='string'&&Number.isInteger(value.page)&&value.page>0?value:null}catch{return null}
@@ -112,9 +113,42 @@ function bookmarkTarget(){
 function updateBookmarkButtons(){
  const target=bookmarkTarget(),exists=!!target,ready=!!(pdfDocument&&totalPages&&currentBookIndex>=0);
  $('bookmarkSave').disabled=!ready;$('bookmarkGo').hidden=!exists;$('bookmarkDelete').hidden=!exists;
- const here=!!(target&&target.index===currentBookIndex&&target.page===currentPage),saveLabel=here?'책갈피 저장됨':'책갈피 설정';
+ const here=!!(target&&target.index===currentBookIndex&&target.page===currentPage),saveLabel=here?'책갈피 저장됨':'책갈피';
  $('bookmarkSave').setAttribute('aria-pressed',String(here));$('bookmarkSave').setAttribute('aria-label',here?'현재 페이지에 책갈피가 설정됨':'현재 페이지에 책갈피 설정');$('bookmarkSave').title=saveLabel;$('bookmarkSave').querySelector('span').textContent=saveLabel;
  if(target){$('bookmarkGo').title=target.title+' '+target.page+'쪽으로 이동';$('bookmarkGo').setAttribute('aria-label',$('bookmarkGo').title)}
+}
+let downloadInProgress=false;
+async function downloadOriginal(){
+ if(downloadInProgress||!currentBookUrl||!totalPages)return;
+ const url=currentBookUrl,filename=decodeURIComponent(new URL(url).pathname.split('/').pop())||'original.pdf';
+ const button=$('downloadOriginal');
+ downloadInProgress=true;button.disabled=true;button.setAttribute('aria-busy','true');
+ let writable=null;
+ try{
+  if(typeof window.showSaveFilePicker==='function'&&window.isSecureContext){
+   // Open the picker before awaiting any data so the click's user activation is retained.
+   let handle;
+   try{handle=await window.showSaveFilePicker({suggestedName:filename,types:[{description:'PDF 문서',accept:{'application/pdf':['.pdf']}}]})}
+   catch(error){
+    if(error.name==='AbortError')return;
+    if(error.name!=='SecurityError'&&error.name!=='NotAllowedError')throw error;
+   }
+   if(handle){
+    const response=await fetch(url);
+    if(!response.ok)throw Error('파일 요청 실패 ('+response.status+')');
+    const blob=await response.blob();
+    writable=await handle.createWritable();await writable.write(blob);await writable.close();writable=null;
+    return;
+   }
+  }
+  const anchor=document.createElement('a');anchor.href=url;anchor.download=filename;
+  document.body.appendChild(anchor);anchor.click();anchor.remove();
+ }catch(error){
+  if(writable){try{await writable.abort()}catch{}}
+  if(error.name!=='AbortError')info('원본 PDF를 내려받지 못했습니다: '+error.message,true);
+ }finally{
+  downloadInProgress=false;button.removeAttribute('aria-busy');button.disabled=!currentBookUrl||!totalPages;
+ }
 }
 function saveBookmark(){
  if(!pdfDocument||currentBookIndex<0||!totalPages)return;
@@ -348,6 +382,7 @@ $('mobileFitPage').onclick=()=>setFitMode('page');
 $('mobileSinglePageMode').onclick=()=>setTwoPage(false);
 $('mobileTwoPageMode').onclick=()=>setTwoPage(true);
 $('bookmarkSave').onclick=saveBookmark;
+$('downloadOriginal').onclick=downloadOriginal;
 $('bookmarkGo').onclick=goToBookmark;
 $('bookmarkDelete').onclick=deleteBookmark;
 const smallScreen=()=>window.matchMedia('(max-width:760px), (max-width:1000px) and (pointer:coarse)').matches;
