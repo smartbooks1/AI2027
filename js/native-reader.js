@@ -234,7 +234,7 @@ async function renderPageView(container,token,direction=0){
     blank.width=Math.ceil(referenceWidth*ratio);blank.height=Math.ceil(referenceHeight*ratio);
     blank.style.width=referenceWidth+'px';blank.style.height=referenceHeight+'px';
     const context=blank.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,blank.width,blank.height);
-    if(index===0&&slots[1]===1){
+    if((index===0&&slots[1]===1)||(index===1&&slots[0]===totalPages)){
      blank.setAttribute('aria-label','표지 이미지');
      blankRenders.push(drawBlankCover(blank,referenceWidth,referenceHeight,ratio));
     }
