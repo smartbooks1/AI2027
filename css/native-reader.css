@@ -112,8 +112,9 @@
 .welcome-body p{margin:0 0 18px}
 .welcome-body .welcome-closing{margin:28px 0 0;color:#2e4e6b}
 .welcome-closing strong{font-weight:600}
-.welcome-copyright{margin-top:36px;padding-top:26px;border-top:1px solid #e8ecf0;color:#737b85;font-size:12px;line-height:1.9;word-break:keep-all;overflow-wrap:anywhere}
-.welcome-copyright h3{margin:0 0 12px;color:#626c77;font-size:13px;font-weight:600}
+.welcome-copyright{margin-top:32px;padding-top:24px;border-top:1px solid #dce5ef;color:#536170;font-size:13px;line-height:1.8;word-break:keep-all;overflow-wrap:anywhere}
+.welcome-copyright h3{margin:0 0 12px;padding-left:10px;border-left:3px solid #849bb3;color:#344e68;font-size:14px;font-weight:600;line-height:1.4}
+.welcome-copyright strong{color:#344e68;font-weight:600}
 .welcome-copyright p{margin:0 0 10px}
 .welcome-copyright p:last-child{margin-bottom:0}
 @media(max-width:760px),(max-width:1000px) and (pointer:coarse){
@@ -122,7 +123,7 @@
  .welcome-eyebrow{font-size:9px;margin-bottom:18px}
  .welcome h2{font-size:25px;margin-bottom:24px}
  .welcome-body{font-size:15px;line-height:1.9}
- .welcome-copyright{margin-top:28px;padding-top:22px}
+ .welcome-copyright{margin-top:28px;padding-top:22px;font-size:12px}
 }
 
 /* Keep the desktop welcome; give mobile readers a direct route to resources. */
