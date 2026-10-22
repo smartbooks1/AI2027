@@ -26,8 +26,9 @@ async function drawBlankCover(canvas,width,height,ratio,mirrored=false){
   })().catch(()=>{coverImagePromise=null;return null});
  }
  const image=await coverImagePromise;if(!image)return;
- // CSS uses 96 pixels per inch: keep the requested 50 mm display width.
- const imageWidth=40*96/25.4,imageHeight=imageWidth*image.naturalHeight/image.naturalWidth;
+ // Match the CSS mobile breakpoint: 30 mm wide on mobile, 40 mm on PC (96 CSS pixels per inch).
+ const imageWidthMm=window.matchMedia('(max-width:760px),(max-width:1000px) and (pointer:coarse)').matches?30:40;
+ const imageWidth=imageWidthMm*96/25.4,imageHeight=imageWidth*image.naturalHeight/image.naturalWidth;
  const context=canvas.getContext('2d');context.save();context.scale(ratio,ratio);
  if(mirrored){context.translate(width,0);context.scale(-1,1)}
  context.drawImage(image,(width-imageWidth)/2,(height-imageHeight)/2,imageWidth,imageHeight);context.restore();
