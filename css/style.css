@@ -76,6 +76,45 @@ button:focus-visible, input:focus-visible {
   font-weight: 700;
   line-height: 1.4;
 }
+.bookstores { margin: 16px 12px 0; }
+.bookstores-mobile { display: none; }
+.bookstores-caption {
+  margin: 0 0 8px;
+  color: #8494aa;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.bookstores-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.bookstore-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 30px;
+  padding: 0 4px;
+  border: 1px solid #dce5ef;
+  border-radius: 6px;
+  background: #fff;
+  color: #506178;
+  font-size: 11px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .16s, border-color .16s, color .16s;
+}
+.bookstore-button:not(:disabled):hover {
+  border-color: #c4d9ee;
+  background: #e9f1fb;
+  color: #18538c;
+}
+.bookstore-button:focus-visible { outline: 3px solid #a5c8fb; outline-offset: 2px; }
+.bookstore-button:disabled { color: #8494aa; cursor: default; }
+.bookstores + .sidebar-label { margin-top: 24px; }
+@media (max-width: 760px), (max-width: 1000px) and (pointer: coarse) {
+  .bookstores-mobile { display: block; margin: 20px 0 0; }
+  .bookstores-mobile .bookstore-button { height: 40px; font-size: 12px; }
+  .bookstores-mobile .bookstores-buttons { gap: 8px; }
+}
 .sidebar-label {
   display: flex;
   align-items: baseline;
