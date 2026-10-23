@@ -15,15 +15,15 @@
   "titleRules": [
     {
       "contains": "Sample3",
-      "title": "특별부록_실시간 X와 웹 정보에 강한 그록(준비 중)"
+      "title": "1장. 실시간 X와 웹 정보에 강한 그록(준비 중)"
     },
     {
       "contains": "Sample1",
-      "title": "특별부록_오픈웨이트모델(준비 중)"
+      "title": "2장.오픈웨이트모델(준비 중)"
     },
     {
       "contains": "Sample2",
-      "title": "특별부록_음악/음성/동영상 AI(준비 중)"
+      "title": "3장. 음악/음성/동영상 AI(준비 중)"
     }
   ],
   "readerDefaults": {
