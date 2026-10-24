@@ -128,6 +128,7 @@
 
 /* Keep the desktop welcome; give mobile readers a direct route to resources. */
 .welcome-mobile,.welcome-mobile-title,.welcome-cover,.welcome-intro{display:none}
+.welcome-desktop-art{display:block;width:180px;max-width:100%;height:auto;margin:0 auto 28px}
 @media(max-width:760px),(max-width:1000px) and (pointer:coarse){
  .welcome{padding:32px 24px 40px;background:#fff}
  .welcome-card{max-width:560px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent}
